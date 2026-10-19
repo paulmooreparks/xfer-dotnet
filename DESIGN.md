@@ -243,7 +243,7 @@ The shape follows `System.Text.Json.JsonSerializer` on purpose, so that a .NET d
 
 The core works on UTF-8 bytes. This is the main difference from xfer-js, which works on a JavaScript string and computes UTF-8 offsets from code points. Working on bytes makes the offset the index, makes the size limit a length check, and avoids a UTF-16 copy of the document.
 
-1. **Bytes in.** If the input is longer than `DocumentBytes`, report `XFER0601` at the origin and stop. Validate with `System.Text.Unicode.Utf8.IsValid` (documented to reject overlong forms, surrogate code points and bytes past U+10FFFF). On failure report `XFER0701` at the origin, as xfer-js does, although .NET could give the position (`Utf8.ToUtf16` reports where it stopped). Section 16, question 2 asks whether both implementations should report the real position; the suite uses `*` for these cases, so either is conformant today.
+1. **Bytes in.** If the input is longer than `DocumentBytes`, report `XFER0601` at the origin and stop. Validate with `System.Text.Unicode.Utf8.IsValid` (documented to reject overlong forms, surrogate code points and bytes past U+10FFFF). On failure, find the first invalid byte with `Utf8.ToUtf16(source, destination, out bytesRead, out _, replaceInvalidSequences: false)`, which is documented to return `OperationStatus.InvalidData` with `bytesRead` counting the valid bytes before the fault, and report `XFER0701` there (specification 9: SHOULD be at the first invalid byte). The offset is counted from after a byte order mark, and the line and column as for the normalized text before it. xfer-js reports the origin, which the specification permits for a platform that cannot locate the fault, so the differential test (section 12.6) compares only the code for this diagnostic.
 2. **String in.** Scan for a lone surrogate (`char.IsHighSurrogate`/`IsLowSurrogate` pairs). If there is one, report `XFER0701` at its position, measured as xfer-js measures it (`../xfer-js/src/normalize.ts`). Otherwise encode to UTF-8 with `Encoding.UTF8.GetBytes` into a pooled buffer and continue as for bytes. The size limit is checked on the UTF-8 length.
 3. **Byte order mark.** Drop a leading `EF BB BF`.
 4. **Line endings.** Replace CRLF and lone CR with LF, into a new buffer only if the input has a CR. Positions are in this normalized text (specification 9).
@@ -336,7 +336,7 @@ Attribute and option names follow `System.Text.Json` where the meaning is the sa
 - with `PropertyNameCaseInsensitive`, two keys of one object that match the same member, at the second key (the document is ambiguous, so neither value is chosen);
 - a kind mismatch or a value out of range, at the value (section 10.3).
 
-The code for all four is the one section 16, question 3 settles.
+The codes are the specification's object-mapper codes (section 9 and 10): `XFER0802` for the unknown key, `XFER0803` for the missing member, `XFER0804` for two keys matching one member, and `XFER0801` or `XFER0303` for the value, as section 10.3 says.
 
 ### 10.3 Reading: XferLang to CLR
 
@@ -362,7 +362,7 @@ The code for all four is the one section 16, question 3 settles.
 | `XferValue` and subclasses | anything of that kind | The value as parsed, annotations included. |
 | class, struct, record | object | Members by name; unknown keys skipped unless `Disallow`. |
 
-A mismatch is an `XferException` with a diagnostic whose code is `XFER0303` when it is a range or precision failure. For a kind mismatch (a string where an integer is needed, for instance) there is no code in the specification, because the specification describes documents, not mappings. Section 16, question 3 proposes adding a code for it; until then the mapper uses `XFER0303` with a message that says what was expected and what was found, and the diagnostic's position is the value's position in the source with a JSON Pointer to it in the message.
+A mismatch is an `XferException` with a diagnostic whose code is `XFER0303` when it is a range or precision failure. A kind mismatch (a string where an integer is needed, for instance) is `XFER0801`. The message says what was expected and what was found, and the diagnostic's position is the value's position in the source, with a JSON Pointer to it in the message.
 
 Annotations are ignored by the mapper except through `XferValue`-typed members. A future version may use `tag` for polymorphism; nothing in this version reads it.
 
@@ -498,8 +498,10 @@ This step changes another repository and needs Paul's go-ahead when it is reache
 ## 16. Questions for Paul
 
 1. **Target frameworks.** Settled 2026-10-19: `net10.0` only, C# 14 (section 3).
-2. **The position of an invalid-UTF-8 diagnostic.** xfer-js reports `XFER0701` at the origin because the JavaScript decoder does not say where it failed; .NET can report the first bad byte. Recommendation: have the specification say a parser SHOULD report the first invalid byte where it can and MAY report the origin, and leave xfer-js as it is.
-3. **Codes for mapping errors.** The specification has `XFER0303` for a value out of range for its target and nothing for the other mapping errors of section 10.2. Recommendation: add a new `08xx` range to specification 10, reserved for object mappers, with `XFER0801` (value has the wrong kind for its target), `XFER0802` (key matches no member), `XFER0803` (required member missing) and `XFER0804` (two keys match one member), all errors, so that every implementation's mapper reports the same codes. The alternative is to leave mapping out of the specification and have this mapper use `XFER0303` for all of them with distinguishing messages.
+2. **The position of an invalid-UTF-8 diagnostic.** Settled 2026-10-19 (xferlang dffcd6b): SHOULD be at the first invalid byte, MAY be at the origin where the platform cannot locate it. This implementation reports the real position (section 5).
+3. **Codes for mapping errors.** Settled 2026-10-19 (xferlang dffcd6b): `XFER0801` to `XFER0804` in specification 9 and 10 (section 10.2 and 10.3).
+
+There are no open questions. New ones go here as they arise.
 
 ## 17. Decisions recorded
 
