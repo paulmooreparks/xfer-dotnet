@@ -15,7 +15,12 @@ public static partial class XferDiagnostics
     public static string SummaryOf(XferDiagnosticCode code) => Lookup(code).Summary;
 
     /// <summary>Writes a code as the specification does, for example <c>XFER0404</c>.</summary>
-    public static string Format(XferDiagnosticCode code) => "XFER" + ((int)code).ToString("D4", CultureInfo.InvariantCulture);
+    /// <exception cref="ArgumentOutOfRangeException">The value is not a defined code.</exception>
+    public static string Format(XferDiagnosticCode code)
+    {
+        _ = Lookup(code); // refuses a value that is not a defined code, as SeverityOf and SummaryOf do
+        return "XFER" + ((int)code).ToString("D4", CultureInfo.InvariantCulture);
+    }
 
     /// <summary>Whether a text such as <c>XFER0404</c> is a defined code, and which.</summary>
     public static bool TryParse(string? text, out XferDiagnosticCode code)

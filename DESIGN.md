@@ -515,3 +515,14 @@ Done 2026-10-19 (Sonnet, then a cold Opus review whose findings are applied). 18
 - **Member order is compared only inside XferLang objects.** The order of a tagged wrapper's own keys (`type`, `value`, `annotations`) is not specified by the suite's README, so the earlier all-keys comparison could have failed a correct implementation.
 - **The JSON archives and `valid.txtar` and `invalid.txtar` are loaded strictly:** an entry of an unknown kind is an error, not skipped. Only `bytes/` tolerates stray files (it holds a README).
 - **A `to-json` case's input must parse without error** before it is converted, and a `from-json` case with no expected output must report an error, as in xfer-js.
+
+### Step 3: text, diagnostics and limits
+
+Done 2026-10-19 (Sonnet, then a cold Opus review whose findings are applied). `Normalizer`, `LineMap`, `Unicode`, the diagnostic enum and table (generated once from the specification's table; `SpecTextTests` compares them row for row and also expands the 4.3 exclusion sentence and checks every code point from U+0080 to U+10FFFF), and `XferLimits`. 249 tests. What differs from the design text above, or was added to it:
+
+- **The first invalid byte is found with a `Rune.DecodeFromUtf8` loop,** after `Utf8.IsValid` says there is one. Section 5 named `Utf8.ToUtf16` and its `bytesRead`; both are documented, and a randomized test (200,000 inputs of one to eight bytes from a pool heavy in CR, LF, the byte order mark and malformed sequences) checks the offset against `Utf8.ToUtf16` and the line and column against an independent computation from a string.
+- **The offset of an invalid-UTF-8 fault is the raw byte offset after the byte order mark,** not an offset in the normalized text, while its line and column are the normalized text's. This is what specification 9 says; the `XferPosition` documentation now says it.
+- **`XferDiagnostics.Format` and `TryParse` are public** (section 4.4 listed only `SeverityOf` and `SummaryOf`); `Format` refuses a value that is not a code.
+- **The result owns its bytes.** The normalized text is always a new array, even when the input has no CR, because the input is a span the caller keeps. The pooled buffer of section 5 is not used; the string path encodes once and shares the byte path's one-pass CR rewrite.
+- **Memory:** line starts are counted first and allocated once. A document of 268,435,455 line feeds (the default maximum) previously needed about 3.5 GB; it now needs the text, one `int` per line, and nothing that grows.
+- **Both `Normalize` overloads refuse a null argument** with `ArgumentNullException`.

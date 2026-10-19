@@ -29,6 +29,8 @@ public class DiagnosticsAndLimitsTests
     public void CodesAreWrittenAndParsedInTheSpecificationsForm()
     {
         Assert.Equal("XFER0404", XferDiagnostics.Format(XferDiagnosticCode.XFER0404));
+        Assert.Throws<ArgumentOutOfRangeException>(() => XferDiagnostics.Format((XferDiagnosticCode)(-5)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => XferDiagnostics.Format((XferDiagnosticCode)12345));
         Assert.Equal("XFER0101", XferDiagnostics.Format(XferDiagnosticCode.XFER0101));
         Assert.Equal("XFER0404", XferDiagnostics.Create(XferDiagnosticCode.XFER0404, Start).CodeText);
         Assert.True(XferDiagnostics.TryParse("XFER0404", out XferDiagnosticCode code));

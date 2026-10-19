@@ -18,8 +18,9 @@ internal sealed record NormalizeResult(byte[] Text, LineMap Lines, XferDiagnosti
 /// </summary>
 /// <remarks>
 /// Invalid UTF-8 is reported at the first byte that is not part of a valid sequence (specification
-/// 9): its offset is counted in bytes from after the byte order mark, and its line and column as
-/// for the normalized text before it. A lone surrogate in a string is reported where it is in the
+/// 9): its offset is the raw byte offset counted from after the byte order mark (so, unlike every
+/// other offset, it is not an offset in the normalized text when a CR LF precedes it), and its
+/// line and column are as for the normalized text before it. A lone surrogate in a string is reported where it is in the
 /// normalized text.
 /// </remarks>
 internal static class Normalizer
@@ -28,6 +29,7 @@ internal static class Normalizer
 
     public static NormalizeResult Normalize(ReadOnlySpan<byte> input, XferLimits limits)
     {
+        ArgumentNullException.ThrowIfNull(limits);
         int inputBytes = input.Length;
         if (inputBytes > limits.DocumentBytes)
         {
@@ -56,6 +58,7 @@ internal static class Normalizer
     public static NormalizeResult Normalize(string input, XferLimits limits)
     {
         ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(limits);
         long size = Unicode.Utf8ByteLength(input);
         if (size > limits.DocumentBytes)
         {
@@ -73,11 +76,10 @@ internal static class Normalizer
 
         try
         {
-            string text = unmarked.Contains('\r', StringComparison.Ordinal)
-                ? unmarked.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n')
-                : unmarked;
-            byte[] utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true).GetBytes(text);
-            return new NormalizeResult(utf8, new LineMap(utf8, LineStarts(utf8)), null, inputBytes);
+            // Encode first (a lone surrogate is already excluded, so this cannot fail), then share
+            // the byte path's single-pass line-ending rewrite instead of making string copies.
+            byte[] utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true).GetBytes(unmarked);
+            return Build(utf8, inputBytes);
         }
         catch (OutOfMemoryException)
         {
@@ -197,16 +199,19 @@ internal static class Normalizer
 
     private static int[] LineStarts(byte[] text)
     {
-        var starts = new List<int> { 0 };
+        // Count first and allocate once: a growing list would hold about three times the memory
+        // at the specification's minimum document size.
+        var starts = new int[text.AsSpan().Count((byte)0x0A) + 1];
+        int line = 1;
         for (int i = 0; i < text.Length; i++)
         {
             if (text[i] == 0x0A)
             {
-                starts.Add(i + 1);
+                starts[line++] = i + 1;
             }
         }
 
-        return [.. starts];
+        return starts;
     }
 
     /// <summary>

@@ -1,4 +1,6 @@
 using System;
+using System.Buffers;
+using System.Linq;
 using System.Text;
 using ParksComputing.XferLang.Text;
 using Xunit;
@@ -184,6 +186,67 @@ public class NormalizerTests
         Assert.Equal(new XferPosition(2, 2, 1), result.Lines.GetPosition(2));
         Assert.Equal(new XferPosition(5, 2, 3), result.Lines.GetPosition(5));
         Assert.Equal(new XferPosition(6, 3, 1), result.Lines.GetPosition(6));
+    }
+
+    [Fact]
+    public void TheReportedPositionOfInvalidUtf8MatchesAnIndependentComputationForRandomInputs()
+    {
+        byte[] pool = [0x0D, 0x0A, 0x61, 0xC3, 0xA9, 0xE6, 0x97, 0xA5, 0xF0, 0x9F, 0x98, 0x80, 0xEF, 0xBB, 0xBF, 0x80, 0xFF, 0xC0, 0xED, 0xA0, 0xE2, 0x82];
+        var random = new Random(20261019);
+        int rejected = 0;
+        for (int n = 0; n < 200_000; n++)
+        {
+            var bytes = new byte[random.Next(1, 9)];
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                bytes[i] = pool[random.Next(pool.Length)];
+            }
+
+            ReadOnlySpan<byte> body = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? bytes.AsSpan(3) : bytes;
+            var scratch = new char[body.Length + 1];
+            OperationStatus status = System.Text.Unicode.Utf8.ToUtf16(body, scratch, out int bytesRead, out _, replaceInvalidSequences: false, isFinalBlock: true);
+
+            NormalizeResult result = Normalizer.Normalize(bytes, Limits);
+            if (status == OperationStatus.Done)
+            {
+                Assert.Null(result.Fault);
+                continue;
+            }
+
+            rejected++;
+            XferDiagnostic fault = Assert.IsType<XferDiagnostic>(result.Fault);
+            Assert.Equal(XferDiagnosticCode.XFER0701, fault.Code);
+            Assert.Equal(bytesRead, fault.Start.Offset);
+
+            // The line and column the normalized valid prefix would have, computed from a string.
+            string prefix = Encoding.UTF8.GetString(body[..bytesRead]).Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+            int line = 1 + prefix.Count(c => c == '\n');
+            string lastLine = prefix[(prefix.LastIndexOf('\n') + 1)..];
+            int column = 1 + lastLine.EnumerateRunes().Count();
+            Assert.Equal((line, column), (fault.Start.Line, fault.Start.Column));
+        }
+
+        Assert.True(rejected > 1000, $"only {rejected} inputs were rejected; the pool is too tame");
+    }
+
+    [Fact]
+    public void ANullLimitsArgumentIsRefused()
+    {
+        Assert.Throws<ArgumentNullException>(() => Normalizer.Normalize("x", null!));
+        Assert.Throws<ArgumentNullException>(() => Normalizer.Normalize(new byte[] { 0x78 }, null!));
+        Assert.Throws<ArgumentNullException>(() => Normalizer.Normalize((string)null!, Limits));
+    }
+
+    [Fact]
+    public void ALargeDocumentOfLineFeedsIsNormalizedWithoutAGrowingList()
+    {
+        // 20 MB of LF: one array of line starts, sized by counting first.
+        var bytes = new byte[20_000_000];
+        Array.Fill(bytes, (byte)0x0A);
+        NormalizeResult result = Normalizer.Normalize(bytes, Limits);
+        Assert.Null(result.Fault);
+        Assert.Equal(20_000_001, result.Lines.LineCount);
+        Assert.Equal(new XferPosition(19_999_999, 20_000_000, 1), result.Lines.GetPosition(19_999_999));
     }
 
     [Fact]

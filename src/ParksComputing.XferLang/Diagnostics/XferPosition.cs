@@ -2,7 +2,10 @@ namespace ParksComputing.XferLang;
 
 /// <summary>
 /// A place in the normalized text of a document (specification 9): after the byte order mark is
-/// removed and line endings are replaced by LF.
+/// removed and line endings are replaced by LF. The one exception is the position of invalid
+/// UTF-8 (<c>XFER0701</c> in byte input): its offset is the raw byte offset counted from after the
+/// byte order mark, because the text has not been normalized yet, while its line and column are
+/// counted as the normalized text before it would count them (specification 9).
 /// </summary>
 /// <param name="Offset">The offset in UTF-8 bytes, counted from 0.</param>
 /// <param name="Line">The line, counted from 1.</param>
