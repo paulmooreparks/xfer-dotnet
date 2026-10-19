@@ -10,6 +10,8 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>xfer</ToolCommandName>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- LibraryImport for GetStdHandle (StandardStream.cs) generates unsafe code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

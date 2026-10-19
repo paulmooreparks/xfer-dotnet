@@ -58,8 +58,8 @@ internal static class Subject
     public static ToJsonOutcome ToJson(string xfer, bool stringifyBigIntegers)
     {
         XferValue value = XferDocument.ParseValue(xfer);
-        XferJsonResult<string> result = XferJson.ToJson(value, new XferToJsonOptions { StringifyBigIntegers = stringifyBigIntegers });
-        return new ToJsonOutcome(result.Value, [.. result.Diagnostics.Select(d => d.CodeText)]);
+        XferJsonResult<string?> result = XferJson.ToJson(value, new XferToJsonOptions { StringifyBigIntegers = stringifyBigIntegers });
+        return new ToJsonOutcome(result.Value ?? throw new InvalidOperationException("ToJson refused the value as too long"), [.. result.Diagnostics.Select(d => d.CodeText)]);
     }
 
     public static FromJsonOutcome FromJson(string json)

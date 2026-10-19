@@ -295,6 +295,52 @@ public sealed partial class DifferentialTests : IDisposable
     }
 
     [Fact]
+    public async Task ToJsonPastTheDocumentSizeLimit()
+    {
+        RequireJs();
+
+        // Indentation makes this 2.2 MB document about 550 million characters of JSON, which both
+        // refuse with XFER0601 (specification 8.1) rather than fail.
+        await File.WriteAllTextAsync(Path.Combine(work, "deep.xfer"), new string('[', 250) + string.Concat(Enumerable.Repeat("1 ", 1_000_000)) + new string(']', 250), Token);
+        await AssertSame(work, ["to-json", "--pretty", "deep.xfer"]);
+        await AssertSame(work, ["to-json", "--pretty", "--json", "deep.xfer"]);
+    }
+
+    [Fact]
+    public async Task StandardOutputClosedByItsReader()
+    {
+        RequireJs();
+        await File.WriteAllTextAsync(Path.Combine(work, "many.xfer"), "[" + string.Concat(Enumerable.Repeat(" 1", 200_000)) + " ]", Token);
+        foreach (bool js in new[] { true, false })
+        {
+            var start = new ProcessStartInfo(js ? "node" : Tool)
+            {
+                WorkingDirectory = work,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            };
+            if (js)
+            {
+                start.ArgumentList.Add(JsCli!);
+            }
+
+            start.ArgumentList.Add("fmt");
+            start.ArgumentList.Add("many.xfer");
+            using Process process = Process.Start(start)!;
+            Task<string> stderr = process.StandardError.ReadToEndAsync(Token);
+
+            // Read a little, then go away, as `| head -c 10` does.
+            char[] buffer = new char[10];
+            _ = await process.StandardOutput.ReadAsync(buffer, Token);
+            process.StandardOutput.Close();
+            await process.WaitForExitAsync(Token);
+            Assert.True(process.ExitCode == 2, $"{(js ? "xfer-js" : "xfer-dotnet")} exited {process.ExitCode}");
+            Assert.Contains("xfer: cannot write standard output", await stderr, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public async Task AFileOpenForWritingElsewhere()
     {
         RequireJs();

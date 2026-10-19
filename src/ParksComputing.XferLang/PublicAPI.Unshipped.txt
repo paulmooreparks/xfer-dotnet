@@ -340,6 +340,8 @@ ParksComputing.XferLang.XferToJsonOptions.Indent.get -> int
 ParksComputing.XferLang.XferToJsonOptions.Indent.init -> void
 ParksComputing.XferLang.XferToJsonOptions.StringifyBigIntegers.get -> bool
 ParksComputing.XferLang.XferToJsonOptions.StringifyBigIntegers.init -> void
+ParksComputing.XferLang.XferToJsonOptions.Limits.get -> ParksComputing.XferLang.XferLimits!
+ParksComputing.XferLang.XferToJsonOptions.Limits.init -> void
 ParksComputing.XferLang.XferToJsonOptions.XferToJsonOptions() -> void
 ParksComputing.XferLang.XferValue
 ParksComputing.XferLang.XferValue.Annotations.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.XferAnnotation!>!
@@ -456,7 +458,7 @@ static ParksComputing.XferLang.XferFromJsonOptions.operator !=(ParksComputing.Xf
 static ParksComputing.XferLang.XferFromJsonOptions.operator ==(ParksComputing.XferLang.XferFromJsonOptions? left, ParksComputing.XferLang.XferFromJsonOptions? right) -> bool
 static ParksComputing.XferLang.XferJson.FromJson(System.ReadOnlySpan<byte> utf8Json, ParksComputing.XferLang.XferFromJsonOptions? options = null) -> ParksComputing.XferLang.XferJsonResult<ParksComputing.XferLang.XferValue?>
 static ParksComputing.XferLang.XferJson.FromJson(string! json, ParksComputing.XferLang.XferFromJsonOptions? options = null) -> ParksComputing.XferLang.XferJsonResult<ParksComputing.XferLang.XferValue?>
-static ParksComputing.XferLang.XferJson.ToJson(ParksComputing.XferLang.XferValue! value, ParksComputing.XferLang.XferToJsonOptions? options = null) -> ParksComputing.XferLang.XferJsonResult<string!>
+static ParksComputing.XferLang.XferJson.ToJson(ParksComputing.XferLang.XferValue! value, ParksComputing.XferLang.XferToJsonOptions? options = null) -> ParksComputing.XferLang.XferJsonResult<string?>
 static ParksComputing.XferLang.XferJsonResult<T>.operator !=(ParksComputing.XferLang.XferJsonResult<T> left, ParksComputing.XferLang.XferJsonResult<T> right) -> bool
 static ParksComputing.XferLang.XferJsonResult<T>.operator ==(ParksComputing.XferLang.XferJsonResult<T> left, ParksComputing.XferLang.XferJsonResult<T> right) -> bool
 static ParksComputing.XferLang.XferLimits.Default.get -> ParksComputing.XferLang.XferLimits!

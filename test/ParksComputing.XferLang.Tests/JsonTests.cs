@@ -111,7 +111,7 @@ public class JsonTests
         ];
         foreach ((string name, XferToJsonOptions options) in runs)
         {
-            XferJsonResult<string> result = XferJson.ToJson(value, options);
+            XferJsonResult<string?> result = XferJson.ToJson(value, options);
             JsonArray want = c[name]!.AsArray();
             if (result.Value != want[0]!.GetValue<string>())
             {
@@ -138,11 +138,30 @@ public class JsonTests
     }
 
     [Fact]
+    public void ToJsonRefusesTextLongerThanTheDocumentSizeLimit()
+    {
+        XferValue value = XferDocument.ParseValue("[ 1 2 3 ]");
+        Assert.Equal("[1,2,3]", XferJson.ToJson(value, new XferToJsonOptions { Limits = new XferLimits { DocumentBytes = 7 } }).Value);
+        XferJsonResult<string?> refused = XferJson.ToJson(value, new XferToJsonOptions { Limits = new XferLimits { DocumentBytes = 6 } });
+        Assert.Null(refused.Value);
+        XferDiagnostic d = Assert.Single(refused.Diagnostics);
+        Assert.Equal(XferDiagnosticCode.XFER0601, d.Code);
+        Assert.Equal("document exceeds size limit: the JSON text is longer than 6 characters", d.Message);
+
+        // 250 levels of indentation around a million items: about 550 million characters indented,
+        // refused under the default limit long before a string could not hold it.
+        string deep = new string('[', 250) + string.Concat(Enumerable.Repeat("1 ", 1_000_000)) + new string(']', 250);
+        XferJsonResult<string?> indented = XferJson.ToJson(XferDocument.ParseValue(deep), new XferToJsonOptions { Indent = 2 });
+        Assert.Null(indented.Value);
+        Assert.Equal(XferDiagnosticCode.XFER0601, Assert.Single(indented.Diagnostics).Code);
+    }
+
+    [Fact]
     public void ToJsonOutputIsAlwaysWellFormedJsonThatTheSystemReaderAccepts()
     {
         foreach (string xfer in new[] { "{ a [ 1 2.5 true null x \"s\\\" 2025-08-01 ] \"é日\" \"\\t\" }", "[ inf nan ]", "{ <! tag t !> k 9007199254740993 }", "\"line\nbreak\\\"" })
         {
-            string text = XferJson.ToJson(XferDocument.ParseValue(xfer)).Value;
+            string text = XferJson.ToJson(XferDocument.ParseValue(xfer)).Value!;
             using JsonDocument doc = JsonDocument.Parse(text);
             Assert.Equal(XferJson.ToJson(XferDocument.ParseValue(xfer)).Value, doc.RootElement.GetRawText());
         }
@@ -204,7 +223,7 @@ public class JsonTests
         XferJsonResult<XferValue?> result = XferJson.FromJson(json, options);
         Assert.Empty(result.Diagnostics);
         Assert.NotNull(result.Value);
-        string back = XferJson.ToJson(result.Value).Value;
+        string? back = XferJson.ToJson(result.Value).Value;
         Assert.Equal(json, back);
 
         XferJsonResult<XferValue?> refused = XferJson.FromJson(json);
@@ -222,7 +241,7 @@ public class JsonTests
         }
 
         var timer = System.Diagnostics.Stopwatch.StartNew();
-        XferJsonResult<string> result = XferJson.ToJson(value);
+        XferJsonResult<string?> result = XferJson.ToJson(value);
         timer.Stop();
         Assert.Single(result.Diagnostics);
         Assert.True(timer.ElapsedMilliseconds < 5_000, $"{timer.ElapsedMilliseconds} ms");
@@ -234,7 +253,7 @@ public class JsonTests
         string digits = "1" + new string('7', 3_000_000);
         var timer = System.Diagnostics.Stopwatch.StartNew();
         XferJsonResult<XferValue?> read = XferJson.FromJson("[" + digits + "]");
-        XferJsonResult<string> written = XferJson.ToJson(read.Value!);
+        XferJsonResult<string?> written = XferJson.ToJson(read.Value!);
         timer.Stop();
         Assert.Equal("[" + digits + "]", written.Value);
         Assert.Equal(XferDiagnosticCode.XFER0901, Assert.Single(written.Diagnostics).Code);

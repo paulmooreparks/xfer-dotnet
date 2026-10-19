@@ -33,7 +33,7 @@ internal static class JsonWriter
         public int Next { get; set; }
     }
 
-    public static XferJsonResult<string> Write(XferValue value, XferToJsonOptions options)
+    public static XferJsonResult<string?> Write(XferValue value, XferToJsonOptions options)
     {
         int indent = Math.Clamp(options.Indent, 0, 10);
         var diagnostics = new List<XferDiagnostic>();
@@ -176,8 +176,11 @@ internal static class JsonWriter
             output.Append(big && options.StringifyBigIntegers ? "\"" + digits + "\"" : digits);
         }
 
+        // Text past the document size limit is refused, as xfer-js refuses it: the length only
+        // grows, so stopping as soon as it is over gives the same answer as writing it all.
+        int maxChars = options.Limits.DocumentBytes;
         Emit(value);
-        while (stack.Count > 0)
+        while (stack.Count > 0 && output.Length <= maxChars)
         {
             Frame frame = stack.Peek();
             int depth = stack.Count;
@@ -205,6 +208,11 @@ internal static class JsonWriter
             Emit(frame.Kids[index]);
         }
 
+        if (output.Length > maxChars)
+        {
+            return new XferJsonResult<string?>(null, [XferDiagnostics.Create(XferDiagnosticCode.XFER0601, XferPosition.Origin, null, $"the JSON text is longer than {maxChars} characters")]);
+        }
+
         if (symbols > 0)
         {
             diagnostics.Add(XferDiagnostics.Create(XferDiagnosticCode.XFER0903, XferPosition.Origin, null, $"{symbols} symbol{(symbols == 1 ? string.Empty : "s")}, first at {Where(firstSymbol)}"));
@@ -215,7 +223,7 @@ internal static class JsonWriter
             diagnostics.Add(XferDiagnostics.Create(XferDiagnosticCode.XFER0904, XferPosition.Origin, null, $"{temporals} temporal{(temporals == 1 ? string.Empty : "s")}, first at {Where(firstTemporal)}"));
         }
 
-        return new XferJsonResult<string>(output.ToString(), diagnostics);
+        return new XferJsonResult<string?>(output.ToString(), diagnostics);
     }
 
     /// <summary>
