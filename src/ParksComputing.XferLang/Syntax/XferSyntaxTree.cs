@@ -140,16 +140,16 @@ public readonly struct XferToken : IEquatable<XferToken>
     public int Length => Raw.Length;
 
     /// <summary>Where the token begins.</summary>
-    public XferPosition Start => source.Lines.GetPosition(Raw.Start);
+    public XferPosition Start => Source.Lines.GetPosition(Raw.Start);
 
     /// <summary>Where the token ends, exclusive.</summary>
-    public XferPosition End => source.Lines.GetPosition(Raw.End);
+    public XferPosition End => Source.Lines.GetPosition(Raw.End);
 
     /// <summary>The exact source text, delimiters included.</summary>
-    public string Text => source.TextOf(index);
+    public string Text => Source.TextOf(index);
 
     /// <summary>For a string: the content between the delimiters, verbatim. Otherwise null.</summary>
-    public string? Content => Raw.Kind == XferTokenKind.String ? source.ContentOf(index) : null;
+    public string? Content => Raw.Kind == XferTokenKind.String ? Source.ContentOf(index) : null;
 
     /// <summary>For a string: its delimiter form. Otherwise <see cref="XferStringForm.None"/>.</summary>
     public XferStringForm Form => Raw.Form;
@@ -166,6 +166,11 @@ public readonly struct XferToken : IEquatable<XferToken>
         get
         {
             Token raw = Raw;
+            if (raw.TriviaCount == 0)
+            {
+                return [];
+            }
+
             var list = new XferTrivia[raw.TriviaCount];
             for (int i = 0; i < list.Length; i++)
             {
@@ -178,7 +183,9 @@ public readonly struct XferToken : IEquatable<XferToken>
 
     internal int Index => index;
 
-    private Token Raw => source.TokenAt(index);
+    private SyntaxSource Source => source ?? throw new InvalidOperationException("this XferToken is a default value and refers to no token");
+
+    private Token Raw => Source.TokenAt(index);
 
     /// <inheritdoc/>
     public bool Equals(XferToken other) => ReferenceEquals(source, other.source) && index == other.index;
@@ -190,7 +197,7 @@ public readonly struct XferToken : IEquatable<XferToken>
     public override int GetHashCode() => index;
 
     /// <inheritdoc/>
-    public override string ToString() => $"{Kind} {Text}";
+    public override string ToString() => source is null ? "(default)" : $"{Kind} {Text}";
 
     /// <summary>Whether two views are of the same token of the same tree.</summary>
     public static bool operator ==(XferToken left, XferToken right) => left.Equals(right);
@@ -221,18 +228,23 @@ public readonly struct XferTrivia : IEquatable<XferTrivia>
     public int Length => Raw.Length;
 
     /// <summary>Where it begins.</summary>
-    public XferPosition Start => source.Lines.GetPosition(Raw.Start);
+    public XferPosition Start => Source.Lines.GetPosition(Raw.Start);
 
     /// <summary>Where it ends, exclusive.</summary>
-    public XferPosition End => source.Lines.GetPosition(Raw.Start + Raw.Length);
+    public XferPosition End => Source.Lines.GetPosition(Raw.Start + Raw.Length);
 
     /// <summary>The exact text.</summary>
-    public string Text => source.Slice(Raw.Start, Raw.Length);
+    public string Text => Source.Slice(Raw.Start, Raw.Length);
 
     /// <summary>For a comment: the length of its slash run. Otherwise 0.</summary>
     public int Run => Raw.Run;
 
-    private Trivia Raw => source.Stream.Trivia[index];
+    private SyntaxSource Source => source ?? throw new InvalidOperationException("this XferTrivia is a default value and refers to no trivia");
+
+    private Trivia Raw => Source.Stream.Trivia[index];
+
+    /// <inheritdoc/>
+    public override string ToString() => source is null ? "(default)" : $"{Kind} {Text}";
 
     /// <inheritdoc/>
     public bool Equals(XferTrivia other) => ReferenceEquals(source, other.source) && index == other.index;

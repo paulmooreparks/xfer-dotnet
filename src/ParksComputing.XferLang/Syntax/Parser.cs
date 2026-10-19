@@ -389,7 +389,7 @@ internal sealed class Parser
                 o.Pairs.Add(new XferPairNode(source, o.PairAnnotations, o.Key, node, o.Skipped.Count == 0 ? null : [.. o.Skipped]));
                 o.Key = -1;
                 o.PairAnnotations = None;
-                o.Skipped = [];
+                o.Skipped.Clear();
                 o.ExpectingValue = false;
                 break;
             case AnnotationFrame a:
@@ -667,7 +667,7 @@ internal sealed class Parser
         frame.Pairs.Add(new XferPairNode(source, frame.PairAnnotations, key, null, frame.Skipped.Count == 0 ? null : [.. frame.Skipped]));
         frame.Key = -1;
         frame.PairAnnotations = None;
-        frame.Skipped = [];
+        frame.Skipped.Clear();
         frame.ExpectingValue = false;
     }
 
@@ -904,8 +904,20 @@ internal sealed class Parser
 /// <summary>Message helpers that write text as xfer-js writes it, so the two implementations' messages match.</summary>
 internal static class Messages
 {
-    /// <summary>xfer-js <c>shorten</c>: more than 24 UTF-16 units becomes the first 21 and "...".</summary>
-    public static string Shorten(string text) => text.Length > 24 ? text[..21] + "..." : text;
+    /// <summary>
+    /// xfer-js <c>shorten</c>: more than 24 UTF-16 units becomes the first 21 and "...", or the
+    /// first 20 when the 21st would be the first half of a surrogate pair.
+    /// </summary>
+    public static string Shorten(string text)
+    {
+        if (text.Length <= 24)
+        {
+            return text;
+        }
+
+        int cut = char.IsHighSurrogate(text[20]) ? 20 : 21;
+        return text[..cut] + "...";
+    }
 
     /// <summary>A string as JavaScript's <c>JSON.stringify</c> writes it, lone surrogates included.</summary>
     public static string JsQuote(string text)

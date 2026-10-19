@@ -11,6 +11,7 @@ using Xunit;
 
 namespace ParksComputing.XferLang.Tests;
 
+[Collection("Memory measurements")]
 public class LexerTests
 {
     private static readonly XferLimits Defaults = XferLimits.Default;

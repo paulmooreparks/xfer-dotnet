@@ -144,7 +144,15 @@ public static class XferDocument
     {
         ArgumentNullException.ThrowIfNull(stream);
         XferLimits limits = (options ?? Defaults).Limits;
-        using var buffer = new MemoryStream();
+
+        // The most a document can be: the caller's limit, and no more than an array can hold.
+        int most = Math.Min(limits.DocumentBytes, Array.MaxLength);
+        if (stream.CanSeek && stream.Length - stream.Position > most)
+        {
+            return Finish(Normalizer.TooLarge(int.MaxValue), limits);
+        }
+
+        using var buffer = stream.CanSeek ? new MemoryStream((int)Math.Max(0, stream.Length - stream.Position)) : new MemoryStream();
         byte[] chunk = ArrayPool<byte>.Shared.Rent(81920);
         try
         {
@@ -156,10 +164,10 @@ public static class XferDocument
                     break;
                 }
 
-                if (buffer.Length + read > limits.DocumentBytes)
+                if (buffer.Length + read > most)
                 {
-                    // Over the limit: the normalizer reports XFER0601 for any input this long.
-                    return Finish(Normalizer.Normalize(new byte[limits.DocumentBytes + 1L > int.MaxValue ? int.MaxValue : limits.DocumentBytes + 1], limits), limits);
+                    // Over the limit: refused as soon as it is known, without reading the rest.
+                    return Finish(Normalizer.TooLarge((int)Math.Min(buffer.Length + read, int.MaxValue)), limits);
                 }
 
                 buffer.Write(chunk, 0, read);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace ParksComputing.XferLang.Syntax;
 
@@ -34,11 +35,16 @@ public abstract class XferNode
     public abstract XferNodeKind Kind { get; }
 
     /// <summary>The annotations before the element, in order.</summary>
-    public IReadOnlyList<XferAnnotationNode> Annotations => AnnotationArray;
+    public IReadOnlyList<XferAnnotationNode> Annotations => annotationView ??= ReadOnly(AnnotationArray);
 
     internal XferAnnotationNode[] AnnotationArray { get; }
 
     internal SyntaxSource Source { get; }
+
+    private ReadOnlyCollection<XferAnnotationNode>? annotationView;
+
+    /// <summary>A read-only view of an internal array, so a caller cannot change the tree through a cast.</summary>
+    internal static ReadOnlyCollection<T> ReadOnly<T>(T[] items) => items.Length == 0 ? ReadOnlyCollection<T>.Empty : Array.AsReadOnly(items);
 }
 
 /// <summary>An object: <c>{</c>, its pairs, and <c>}</c>.</summary>
@@ -65,7 +71,9 @@ public sealed class XferObjectNode : XferNode
     public XferToken? Close => Source.ViewOrNull(close);
 
     /// <summary>The pairs, in order.</summary>
-    public IReadOnlyList<XferPairNode> Pairs => PairArray;
+    public IReadOnlyList<XferPairNode> Pairs => pairView ??= ReadOnly(PairArray);
+
+    private ReadOnlyCollection<XferPairNode>? pairView;
 
     internal XferPairNode[] PairArray { get; }
 
@@ -98,7 +106,9 @@ public sealed class XferSequenceNode : XferNode
     public XferToken? Close => Source.ViewOrNull(close);
 
     /// <summary>The items, in order.</summary>
-    public IReadOnlyList<XferNode> Items => ItemArray;
+    public IReadOnlyList<XferNode> Items => itemView ??= ReadOnly(ItemArray);
+
+    private ReadOnlyCollection<XferNode>? itemView;
 
     internal XferNode[] ItemArray { get; }
 
@@ -186,14 +196,17 @@ public sealed class XferPairNode
     public XferNode? Value { get; }
 
     /// <summary>The annotations before the key, in order.</summary>
-    public IReadOnlyList<XferAnnotationNode> Annotations => AnnotationArray;
+    public IReadOnlyList<XferAnnotationNode> Annotations => annotationView ??= XferNode.ReadOnly(AnnotationArray);
+
+    private ReadOnlyCollection<XferAnnotationNode>? annotationView;
+    private ReadOnlyCollection<XferSkippedSyntax>? skippedView;
 
     /// <summary>
     /// What stood between the key and the value and belongs to neither, in source order: stray
     /// separators carried over from another format, and annotations placed after the key. Each has
     /// a diagnostic; they are kept so the tree stays lossless.
     /// </summary>
-    public IReadOnlyList<XferSkippedSyntax> Skipped => SkippedArray;
+    public IReadOnlyList<XferSkippedSyntax> Skipped => skippedView ??= XferNode.ReadOnly(SkippedArray);
 
     internal XferAnnotationNode[] AnnotationArray { get; }
 

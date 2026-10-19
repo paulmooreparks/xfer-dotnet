@@ -4,8 +4,9 @@
 //
 //   node tools/fixtures/parser-fixture.mjs <bundle dir>
 //
-// Build the bundle in the xfer-js repository with (clean the directory first):
-//   npx tsdown src/index.ts test/generator.ts test/tagged.ts test/random.ts --format esm --out-dir <dir> --no-dts --platform neutral
+// Build the bundle in the xfer-js repository with (clean the directory first; --no-config stops
+// tsdown also running the repository's own two builds into the same directory, which corrupts it):
+//   npx tsdown --no-config src/index.ts test/generator.ts test/tagged.ts test/random.ts --format esm --out-dir <dir> --no-dts --platform neutral
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -91,7 +92,7 @@ for (let seed = 1; seed <= 1000; seed++) {
   const doc = generate(seed);
   const random = mulberry32(seed * 7919);
   const text = renderDocument(doc, randomSeparator(random), random() < 0.5 ? "" : " \n");
-  add(text, `generated:${seed}`);
+  add(text, `generated:${seed}`, seed % 10 === 0 ? { depth: 2, elements: 6 } : undefined);
   for (let k = 0; k < 3; k++) {
     const at = Math.floor(random() * (text.length + 1));
     const r = random();
@@ -112,6 +113,10 @@ const soup = [
   "{", "}", "[", "]", "<!", "!>", "<! id \"a\" !>", "<! tag t !>", "<! xfer 1 !>", "<! xfer 2 !>", "<! lang en !>", "<! let x 1 !>",
   " ", "\n", "</ c />", ",", ":", "a", "b", "\"s\"", "\"\"", "#\"q\"#", "1", "-2", "1.5", "true", "null", "inf", "nan", "2025-08-01",
   "~", "?", "<x", "\"open", "a.", "0755", "1-2", "!",
+  // Non-ASCII text, long keys (the messages shorten them), line endings, a byte order mark in the
+  // middle, and head versions the parser must refuse.
+  "é", "日本", "\u{1F600}", `"${"\u{1F600}".repeat(15)}"`, `"${"k".repeat(30)}"`, "x".repeat(26), "\r\n", "\r", "\uFEFF",
+  "<! xfer 01 !>", "<! xfer 1_0 !>", "<! xfer 0x1 !>", "<! xfer 0 !>", "<! xfer -1 !>", "<! xfer \"1\" !>", "<! id \"a\" !>",
 ];
 const random = mulberry32(20261019);
 for (let run = 0; run < 4000; run++) {

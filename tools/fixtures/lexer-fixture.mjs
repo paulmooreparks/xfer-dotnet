@@ -6,7 +6,7 @@
 //   src/lexer.ts, src/normalize.ts and src/limits.ts as ES modules>
 //
 // Build the bundle in the xfer-js repository with:
-//   npx tsdown src/lexer.ts src/normalize.ts src/limits.ts --format esm --out-dir <dir> --no-dts --platform neutral
+//   npx tsdown --no-config src/lexer.ts src/normalize.ts src/limits.ts --format esm --out-dir <dir> --no-dts --platform neutral
 //
 // Each line is one case: the normalized text, every token (kind, start and end byte offsets, its
 // leading trivia, and for strings the content and delimiter, for keywords which), and every

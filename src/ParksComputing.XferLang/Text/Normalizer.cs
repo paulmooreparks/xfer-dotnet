@@ -87,6 +87,9 @@ internal static class Normalizer
         }
     }
 
+    /// <summary>The result for an input known to be longer than the size limit, without the input.</summary>
+    public static NormalizeResult TooLarge(int inputBytes) => Rejected(XferDiagnosticCode.XFER0601, inputBytes);
+
     private static NormalizeResult Rejected(XferDiagnosticCode code, int inputBytes, XferPosition? at = null, string? detail = null)
     {
         return new NormalizeResult([], LineMap.Empty, XferDiagnostics.Create(code, at ?? XferPosition.Origin, null, detail), inputBytes);

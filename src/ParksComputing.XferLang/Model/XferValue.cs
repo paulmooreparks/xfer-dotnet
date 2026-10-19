@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using ParksComputing.XferLang.Model;
 
 namespace ParksComputing.XferLang;
 
@@ -80,7 +83,7 @@ public sealed record XferAnnotation(string Name, XferValue Value);
 /// </remarks>
 public abstract class XferValue : IEquatable<XferValue>
 {
-    private static readonly IReadOnlyList<XferAnnotation> NoAnnotations = Array.Empty<XferAnnotation>();
+    private static readonly IReadOnlyList<XferAnnotation> NoAnnotations = System.Collections.ObjectModel.ReadOnlyCollection<XferAnnotation>.Empty;
 
     private protected XferValue(IEnumerable<XferAnnotation>? annotations)
     {
@@ -96,7 +99,7 @@ public abstract class XferValue : IEquatable<XferValue>
             ArgumentNullException.ThrowIfNull(a, nameof(annotations));
         }
 
-        Annotations = list.Length == 0 ? NoAnnotations : list;
+        Annotations = list.Length == 0 ? NoAnnotations : Array.AsReadOnly(list);
     }
 
     /// <summary>The kind of value.</summary>
@@ -363,23 +366,61 @@ public sealed class XferInteger : XferValue
         : base(annotations)
     {
         ArgumentNullException.ThrowIfNull(lexeme);
-        Value = value;
+        computed = new StrongBox<BigInteger>(value);
         Lexeme = lexeme;
     }
+
+    // Used by the projection: the lexer has checked the spelling, and the value is computed only
+    // when someone asks, because converting a very long decimal integer costs more than parsing
+    // the whole document around it.
+    internal XferInteger(string lexeme, IReadOnlyList<XferAnnotation>? annotations)
+        : base(annotations)
+    {
+        Lexeme = lexeme;
+    }
+
+    // Set once, as a whole object, so that a reader on another thread sees either nothing or the
+    // complete value. Two threads may both compute it; both get the same answer.
+    private StrongBox<BigInteger>? computed;
+
+    private bool HasValue => Volatile.Read(ref computed) is not null;
 
     /// <inheritdoc/>
     public override XferValueKind Kind => XferValueKind.Integer;
 
     /// <summary>The value.</summary>
-    public BigInteger Value { get; }
+    public BigInteger Value
+    {
+        get
+        {
+            StrongBox<BigInteger>? box = Volatile.Read(ref computed);
+            if (box is null)
+            {
+                box = new StrongBox<BigInteger>(Projection.ParseInteger(Lexeme));
+                Volatile.Write(ref computed, box);
+            }
+
+            return box.Value;
+        }
+    }
 
     /// <summary>The spelling, radix and digit separators included.</summary>
     public string Lexeme { get; }
 
-    private protected override bool ShallowEquals(XferValue other) =>
-        Value == ((XferInteger)other).Value && string.Equals(Lexeme, ((XferInteger)other).Lexeme, StringComparison.Ordinal);
+    private protected override bool ShallowEquals(XferValue other)
+    {
+        var o = (XferInteger)other;
+        if (!string.Equals(Lexeme, o.Lexeme, StringComparison.Ordinal))
+        {
+            return false;
+        }
 
-    private protected override int ShallowHash() => Value.GetHashCode();
+        // A parsed integer's value is fixed by its spelling, so two such values with one spelling
+        // are equal without converting; a value built by hand may pair a spelling with any value.
+        return (!HasValue && !o.HasValue) || Value == o.Value;
+    }
+
+    private protected override int ShallowHash() => StringComparer.Ordinal.GetHashCode(Lexeme);
 }
 
 /// <summary>A fractional number, kept as its spelling only: the package never decides float or decimal.</summary>

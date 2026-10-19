@@ -210,7 +210,7 @@ internal static class Projection
         XferObject o => new XferObject(o.Entries, annotations),
         XferSequence s => new XferSequence(s.ItemArray, annotations),
         XferString s => new XferString(s.Value, annotations),
-        XferInteger i => new XferInteger(i.Value, i.Lexeme, annotations),
+        XferInteger i => new XferInteger(i.Lexeme, annotations),
         XferFractional f => new XferFractional(f.Lexeme, annotations),
         XferBool b => new XferBool(b.Value, annotations),
         XferNull => new XferNull(annotations),
@@ -229,7 +229,7 @@ internal static class Projection
                 return new XferString(source.ContentOf(index));
             case XferTokenKind.Integer:
                 string lexeme = source.TextOf(index);
-                return new XferInteger(ParseInteger(lexeme), lexeme);
+                return new XferInteger(lexeme, null);
             case XferTokenKind.Fractional:
                 return new XferFractional(source.TextOf(index));
             case XferTokenKind.Identifier:

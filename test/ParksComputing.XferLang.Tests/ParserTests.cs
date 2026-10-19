@@ -11,6 +11,7 @@ using Xunit;
 
 namespace ParksComputing.XferLang.Tests;
 
+[Collection("Memory measurements")]
 public class ParserTests
 {
     private static readonly JsonNodeOptions NodeOptions = default;
@@ -199,6 +200,95 @@ public class ParserTests
             Assert.Equal(result.Tree.Text, Lossless.Reconstruct(TaggedWriter.TokensInOrder(result.Tree)));
             Assert.True(timer.ElapsedMilliseconds < 5_000, $"{input[..12]}...: {timer.ElapsedMilliseconds} ms");
         }
+    }
+
+    [Fact]
+    public void AVeryLongIntegerIsNotConvertedUntilItsValueIsAskedFor()
+    {
+        string digits = "1" + new string('7', 4_000_000);
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        XferParseResult result = XferDocument.Parse("[ " + digits + " " + digits + " ]");
+        timer.Stop();
+        Assert.True(result.Ok);
+        Assert.True(timer.ElapsedMilliseconds < 1_000, $"parse took {timer.ElapsedMilliseconds} ms");
+        var items = (XferSequence)result.Value!;
+        Assert.Equal(items[0], items[1]); // equal by spelling, without converting either
+        Assert.Equal(digits, ((XferInteger)items[0]).Lexeme);
+
+        var small = (XferInteger)XferDocument.ParseValue("-0x1F");
+        Assert.Equal(-31, (int)small.Value);
+        Assert.Equal(small, new XferInteger(-31, "-0x1F"));
+        Assert.NotEqual(small, new XferInteger(-30, "-0x1F"));
+        Assert.NotEqual(new XferInteger(5, "7"), (XferInteger)XferDocument.ParseValue("7"));
+    }
+
+    [Fact]
+    public void ValuesAndTreesCannotBeChangedThroughACast()
+    {
+        XferParseResult result = XferDocument.Parse("{ <! tag t !> a [ 1 ] }");
+        Assert.False(result.Value!.Annotations is XferAnnotation[]);
+        var obj = (XferObjectNode)result.Tree.Root!;
+        Assert.False(obj.Pairs is XferPairNode[]);
+        Assert.False(obj.Pairs[0].Annotations is XferAnnotationNode[]);
+        Assert.False(((XferSequenceNode)obj.Pairs[0].Value!).Items is XferNode[]);
+        Assert.False(obj.Pairs[0].Skipped is XferSkippedSyntax[]);
+        Assert.False(obj.Annotations is XferAnnotationNode[]);
+        XferValue a = ((XferObject)result.Value!)["a"];
+        Assert.False(a.Annotations is XferAnnotation[]);
+    }
+
+    [Fact]
+    public void ADefaultTokenOrTriviaSaysSoInsteadOfCrashing()
+    {
+        Assert.Equal("(default)", default(XferToken).ToString());
+        Assert.Equal("(default)", default(XferTrivia).ToString());
+        Assert.Throws<InvalidOperationException>(() => default(XferToken).Text);
+        Assert.Throws<InvalidOperationException>(() => default(XferTrivia).Text);
+        Assert.Empty(XferDocument.Parse("1").Tree.Tokens[0].LeadingTrivia);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task ParseAsyncRefusesAnOversizedSeekableStreamWithoutReadingIt()
+    {
+        using var huge = new HugeStream(3L * 1024 * 1024 * 1024);
+        var options = new XferParseOptions { Limits = new XferLimits { DocumentBytes = int.MaxValue } };
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        XferParseResult result = await XferDocument.ParseAsync(huge, options, TestContext.Current.CancellationToken);
+        Assert.Equal(XferDiagnosticCode.XFER0601, Assert.Single(result.Diagnostics).Code);
+        Assert.Equal(0, huge.BytesRead);
+        Assert.True(GC.GetAllocatedBytesForCurrentThread() - before < 1_000_000);
+    }
+
+    /// <summary>A seekable stream that claims a length and fails the test if it is read.</summary>
+    private sealed class HugeStream(long length) : Stream
+    {
+        public long BytesRead { get; private set; }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => true;
+
+        public override bool CanWrite => false;
+
+        public override long Length => length;
+
+        public override long Position { get; set; }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            BytesRead += count;
+            return count;
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     [Fact]
