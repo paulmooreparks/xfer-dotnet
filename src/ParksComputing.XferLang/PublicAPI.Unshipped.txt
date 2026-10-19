@@ -1,0 +1,111 @@
+#nullable enable
+ParksComputing.XferLang.XferDiagnostic
+ParksComputing.XferLang.XferDiagnostic.<Clone>$() -> ParksComputing.XferLang.XferDiagnostic!
+ParksComputing.XferLang.XferDiagnostic.Code.get -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnostic.Code.init -> void
+ParksComputing.XferLang.XferDiagnostic.CodeText.get -> string!
+ParksComputing.XferLang.XferDiagnostic.Deconstruct(out ParksComputing.XferLang.XferDiagnosticCode Code, out ParksComputing.XferLang.XferSeverity Severity, out string! Message, out ParksComputing.XferLang.XferPosition Start, out ParksComputing.XferLang.XferPosition End) -> void
+ParksComputing.XferLang.XferDiagnostic.End.get -> ParksComputing.XferLang.XferPosition
+ParksComputing.XferLang.XferDiagnostic.End.init -> void
+ParksComputing.XferLang.XferDiagnostic.Equals(ParksComputing.XferLang.XferDiagnostic? other) -> bool
+ParksComputing.XferLang.XferDiagnostic.Message.get -> string!
+ParksComputing.XferLang.XferDiagnostic.Message.init -> void
+ParksComputing.XferLang.XferDiagnostic.Severity.get -> ParksComputing.XferLang.XferSeverity
+ParksComputing.XferLang.XferDiagnostic.Severity.init -> void
+ParksComputing.XferLang.XferDiagnostic.Start.get -> ParksComputing.XferLang.XferPosition
+ParksComputing.XferLang.XferDiagnostic.Start.init -> void
+ParksComputing.XferLang.XferDiagnostic.XferDiagnostic(ParksComputing.XferLang.XferDiagnosticCode Code, ParksComputing.XferLang.XferSeverity Severity, string! Message, ParksComputing.XferLang.XferPosition Start, ParksComputing.XferLang.XferPosition End) -> void
+ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0101 = 101 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0102 = 102 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0103 = 103 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0104 = 104 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0105 = 105 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0201 = 201 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0202 = 202 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0301 = 301 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0302 = 302 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0303 = 303 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0304 = 304 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0305 = 305 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0401 = 401 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0402 = 402 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0403 = 403 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0404 = 404 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0405 = 405 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0406 = 406 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0407 = 407 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0501 = 501 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0502 = 502 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0503 = 503 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0504 = 504 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0505 = 505 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0506 = 506 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0601 = 601 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0602 = 602 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0603 = 603 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0604 = 604 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0605 = 605 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0701 = 701 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0801 = 801 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0802 = 802 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0803 = 803 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0804 = 804 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0901 = 901 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0902 = 902 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0903 = 903 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0904 = 904 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0905 = 905 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0906 = 906 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnosticCode.XFER0907 = 907 -> ParksComputing.XferLang.XferDiagnosticCode
+ParksComputing.XferLang.XferDiagnostics
+ParksComputing.XferLang.XferLimits
+ParksComputing.XferLang.XferLimits.<Clone>$() -> ParksComputing.XferLang.XferLimits!
+ParksComputing.XferLang.XferLimits.Depth.get -> int
+ParksComputing.XferLang.XferLimits.Depth.init -> void
+ParksComputing.XferLang.XferLimits.DocumentBytes.get -> int
+ParksComputing.XferLang.XferLimits.DocumentBytes.init -> void
+ParksComputing.XferLang.XferLimits.Elements.get -> int
+ParksComputing.XferLang.XferLimits.Elements.init -> void
+ParksComputing.XferLang.XferLimits.Equals(ParksComputing.XferLang.XferLimits? other) -> bool
+ParksComputing.XferLang.XferLimits.RunLength.get -> int
+ParksComputing.XferLang.XferLimits.RunLength.init -> void
+ParksComputing.XferLang.XferLimits.TokenBytes.get -> int
+ParksComputing.XferLang.XferLimits.TokenBytes.init -> void
+ParksComputing.XferLang.XferLimits.XferLimits() -> void
+ParksComputing.XferLang.XferPosition
+ParksComputing.XferLang.XferPosition.Column.get -> int
+ParksComputing.XferLang.XferPosition.Column.init -> void
+ParksComputing.XferLang.XferPosition.Deconstruct(out int Offset, out int Line, out int Column) -> void
+ParksComputing.XferLang.XferPosition.Equals(ParksComputing.XferLang.XferPosition other) -> bool
+ParksComputing.XferLang.XferPosition.Line.get -> int
+ParksComputing.XferLang.XferPosition.Line.init -> void
+ParksComputing.XferLang.XferPosition.Offset.get -> int
+ParksComputing.XferLang.XferPosition.Offset.init -> void
+ParksComputing.XferLang.XferPosition.XferPosition() -> void
+ParksComputing.XferLang.XferPosition.XferPosition(int Offset, int Line, int Column) -> void
+ParksComputing.XferLang.XferSeverity
+ParksComputing.XferLang.XferSeverity.Error = 0 -> ParksComputing.XferLang.XferSeverity
+ParksComputing.XferLang.XferSeverity.Info = 2 -> ParksComputing.XferLang.XferSeverity
+ParksComputing.XferLang.XferSeverity.Warning = 1 -> ParksComputing.XferLang.XferSeverity
+override ParksComputing.XferLang.XferDiagnostic.Equals(object? obj) -> bool
+override ParksComputing.XferLang.XferDiagnostic.GetHashCode() -> int
+override ParksComputing.XferLang.XferDiagnostic.ToString() -> string!
+override ParksComputing.XferLang.XferLimits.Equals(object? obj) -> bool
+override ParksComputing.XferLang.XferLimits.GetHashCode() -> int
+override ParksComputing.XferLang.XferLimits.ToString() -> string!
+override ParksComputing.XferLang.XferPosition.GetHashCode() -> int
+static ParksComputing.XferLang.XferDiagnostic.operator !=(ParksComputing.XferLang.XferDiagnostic? left, ParksComputing.XferLang.XferDiagnostic? right) -> bool
+static ParksComputing.XferLang.XferDiagnostic.operator ==(ParksComputing.XferLang.XferDiagnostic? left, ParksComputing.XferLang.XferDiagnostic? right) -> bool
+static ParksComputing.XferLang.XferDiagnostics.Format(ParksComputing.XferLang.XferDiagnosticCode code) -> string!
+static ParksComputing.XferLang.XferDiagnostics.SeverityOf(ParksComputing.XferLang.XferDiagnosticCode code) -> ParksComputing.XferLang.XferSeverity
+static ParksComputing.XferLang.XferDiagnostics.SummaryOf(ParksComputing.XferLang.XferDiagnosticCode code) -> string!
+static ParksComputing.XferLang.XferDiagnostics.TryParse(string? text, out ParksComputing.XferLang.XferDiagnosticCode code) -> bool
+static ParksComputing.XferLang.XferLimits.Default.get -> ParksComputing.XferLang.XferLimits!
+static ParksComputing.XferLang.XferLimits.operator !=(ParksComputing.XferLang.XferLimits? left, ParksComputing.XferLang.XferLimits? right) -> bool
+static ParksComputing.XferLang.XferLimits.operator ==(ParksComputing.XferLang.XferLimits? left, ParksComputing.XferLang.XferLimits? right) -> bool
+static ParksComputing.XferLang.XferPosition.Origin.get -> ParksComputing.XferLang.XferPosition
+static ParksComputing.XferLang.XferPosition.operator !=(ParksComputing.XferLang.XferPosition left, ParksComputing.XferLang.XferPosition right) -> bool
+static ParksComputing.XferLang.XferPosition.operator ==(ParksComputing.XferLang.XferPosition left, ParksComputing.XferLang.XferPosition right) -> bool
+~override ParksComputing.XferLang.XferPosition.Equals(object obj) -> bool
+~override ParksComputing.XferLang.XferPosition.ToString() -> string
