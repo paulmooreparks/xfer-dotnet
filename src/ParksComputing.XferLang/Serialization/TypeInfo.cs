@@ -123,7 +123,7 @@ internal sealed class TypeMap
 
     public MemberMap[] Members { get; set; } = [];
 
-    /// <summary>Members in writing order: by <see cref="XferPropertyOrderAttribute"/>, then base class first, then as reflection gives them.</summary>
+    /// <summary>Members in writing order: by <see cref="XferPropertyOrderAttribute"/>, then by key, ordinally.</summary>
     public MemberMap[] WriteOrder { get; set; } = [];
 
     public Dictionary<string, MemberMap> ByKey { get; set; } = new(StringComparer.Ordinal);
@@ -362,10 +362,10 @@ internal static class TypeResolver
     private static void BuildObject(TypeMap map, XferSerializerOptions options)
     {
         Type type = map.Type;
-        var members = new List<(MemberMap Member, int Depth, int Position)>();
+        var members = new List<MemberMap>();
 
         // Walk from the most derived type to the base, so a property hidden with "new" is taken
-        // once, from the most derived declaration; then order base class members first.
+        // once, from the most derived declaration.
         var chain = new List<Type>();
         for (Type? t = type; t is not null && t != typeof(object); t = t.BaseType)
         {
@@ -373,10 +373,8 @@ internal static class TypeResolver
         }
 
         var seenNames = new HashSet<string>(StringComparer.Ordinal);
-        for (int depth = 0; depth < chain.Count; depth++)
+        foreach (Type level in chain)
         {
-            Type level = chain[depth];
-            int position = 0;
             foreach (PropertyInfo p in level.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             {
                 if (p.GetIndexParameters().Length > 0 || p.GetMethod is not { IsPublic: true } || !seenNames.Add(p.Name) || p.IsDefined(typeof(XferIgnoreAttribute)))
@@ -384,7 +382,7 @@ internal static class TypeResolver
                     continue;
                 }
 
-                members.Add((Describe(p, p.PropertyType, options, o => p.GetValue(o), p.SetMethod is { IsPublic: true } ? (o, v) => p.SetValue(o, v) : null), depth, position++));
+                members.Add(Describe(p, p.PropertyType, options, o => p.GetValue(o), p.SetMethod is { IsPublic: true } ? (o, v) => p.SetValue(o, v) : null));
             }
 
             foreach (FieldInfo f in level.GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
@@ -394,18 +392,21 @@ internal static class TypeResolver
                     continue;
                 }
 
-                members.Add((Describe(f, f.FieldType, options, o => f.GetValue(o), f.IsInitOnly ? null : (o, v) => f.SetValue(o, v)), depth, position++));
+                members.Add(Describe(f, f.FieldType, options, o => f.GetValue(o), f.IsInitOnly ? null : (o, v) => f.SetValue(o, v)));
             }
         }
 
-        MemberMap[] all = [.. members.Select(m => m.Member)];
+        // Reflection returns members in no documented order, so nothing depends on it: members
+        // are kept sorted by key (ordinal), which fixes the write order of members of equal
+        // XferPropertyOrder and which missing required member is reported first.
+        MemberMap[] all = [.. members.OrderBy(m => m.Key, StringComparer.Ordinal)];
         for (int i = 0; i < all.Length; i++)
         {
             all[i].Index = i;
         }
 
         map.Members = all;
-        map.WriteOrder = [.. members.OrderBy(m => m.Member.Order).ThenByDescending(m => m.Depth).ThenBy(m => m.Position).Select(m => m.Member)];
+        map.WriteOrder = [.. all.OrderBy(m => m.Order)]; // OrderBy is stable, so keys stay sorted within an order
 
         StringComparer comparer = options.PropertyNameCaseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         var byKey = new Dictionary<string, MemberMap>(comparer);
