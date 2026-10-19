@@ -359,7 +359,7 @@ public sealed class XferString : XferValue
 }
 
 /// <summary>An integer: its exact value at any size, and its spelling.</summary>
-public sealed class XferInteger : XferValue
+public sealed partial class XferInteger : XferValue
 {
     /// <summary>Builds an integer value with its spelling, which the canonical writer keeps.</summary>
     public XferInteger(BigInteger value, string lexeme, IEnumerable<XferAnnotation>? annotations = null)
@@ -428,7 +428,7 @@ public sealed class XferInteger : XferValue
 }
 
 /// <summary>A fractional number, kept as its spelling only: the package never decides float or decimal.</summary>
-public sealed class XferFractional : XferValue
+public sealed partial class XferFractional : XferValue
 {
     /// <summary>Builds a fractional value from its spelling, which may be <c>inf</c>, <c>-inf</c> or <c>nan</c>.</summary>
     public XferFractional(string lexeme, IEnumerable<XferAnnotation>? annotations = null)
@@ -510,7 +510,7 @@ public sealed class XferSymbol : XferValue
 }
 
 /// <summary>A date, a time, or a date and time, kept as its spelling (specification 4.6).</summary>
-public sealed class XferTemporal : XferValue
+public sealed partial class XferTemporal : XferValue
 {
     /// <summary>Builds a temporal value from its kind and spelling.</summary>
     public XferTemporal(XferTemporalKind temporalKind, string lexeme, IEnumerable<XferAnnotation>? annotations = null)

@@ -55,7 +55,19 @@ internal static class Subject
     }
 
     /// <summary>Converts a document that has already been checked to parse without error.</summary>
-    public static ToJsonOutcome ToJson(string xfer, bool stringifyBigIntegers) => throw new NotImplementedException("JSON (step 7)");
+    public static ToJsonOutcome ToJson(string xfer, bool stringifyBigIntegers)
+    {
+        XferValue value = XferDocument.ParseValue(xfer);
+        XferJsonResult<string> result = XferJson.ToJson(value, new XferToJsonOptions { StringifyBigIntegers = stringifyBigIntegers });
+        return new ToJsonOutcome(result.Value, [.. result.Diagnostics.Select(d => d.CodeText)]);
+    }
 
-    public static FromJsonOutcome FromJson(string json) => throw new NotImplementedException("JSON (step 7)");
+    public static FromJsonOutcome FromJson(string json)
+    {
+        XferJsonResult<XferValue?> result = XferJson.FromJson(json);
+        return new FromJsonOutcome(
+            result.Value is null ? null : XferWriter.Canonical(result.Value),
+            [.. result.Diagnostics.Select(d => d.CodeText)],
+            result.Diagnostics.Any(d => d.Severity == XferSeverity.Error));
+    }
 }

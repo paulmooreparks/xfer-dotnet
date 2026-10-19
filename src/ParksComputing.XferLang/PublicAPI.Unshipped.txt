@@ -180,11 +180,34 @@ ParksComputing.XferLang.XferException.XferException(string! message) -> void
 ParksComputing.XferLang.XferException.XferException(string! message, System.Exception! innerException) -> void
 ParksComputing.XferLang.XferFractional
 ParksComputing.XferLang.XferFractional.Lexeme.get -> string!
+ParksComputing.XferLang.XferFractional.ToDouble(out bool exact) -> double
+ParksComputing.XferLang.XferFractional.TryGetDecimal(out decimal value) -> bool
+ParksComputing.XferLang.XferFractional.TryGetDecimalParts(out System.Numerics.BigInteger digits, out int exponent) -> bool
 ParksComputing.XferLang.XferFractional.XferFractional(string! lexeme, System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
+ParksComputing.XferLang.XferFromJsonOptions
+ParksComputing.XferLang.XferFromJsonOptions.<Clone>$() -> ParksComputing.XferLang.XferFromJsonOptions!
+ParksComputing.XferLang.XferFromJsonOptions.Equals(ParksComputing.XferLang.XferFromJsonOptions? other) -> bool
+ParksComputing.XferLang.XferFromJsonOptions.Limits.get -> ParksComputing.XferLang.XferLimits!
+ParksComputing.XferLang.XferFromJsonOptions.Limits.init -> void
+ParksComputing.XferLang.XferFromJsonOptions.XferFromJsonOptions() -> void
 ParksComputing.XferLang.XferInteger
 ParksComputing.XferLang.XferInteger.Lexeme.get -> string!
+ParksComputing.XferLang.XferInteger.ToDouble(out bool exact) -> double
+ParksComputing.XferLang.XferInteger.TryGet<T>(out T value) -> bool
+ParksComputing.XferLang.XferInteger.TryGetDecimal(out decimal value) -> bool
+ParksComputing.XferLang.XferInteger.TryGetInt64(out long value) -> bool
 ParksComputing.XferLang.XferInteger.Value.get -> System.Numerics.BigInteger
 ParksComputing.XferLang.XferInteger.XferInteger(System.Numerics.BigInteger value, string! lexeme, System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
+ParksComputing.XferLang.XferJson
+ParksComputing.XferLang.XferJsonResult<T>
+ParksComputing.XferLang.XferJsonResult<T>.Deconstruct(out T Value, out System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.XferDiagnostic!>! Diagnostics) -> void
+ParksComputing.XferLang.XferJsonResult<T>.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.XferDiagnostic!>!
+ParksComputing.XferLang.XferJsonResult<T>.Diagnostics.init -> void
+ParksComputing.XferLang.XferJsonResult<T>.Equals(ParksComputing.XferLang.XferJsonResult<T> other) -> bool
+ParksComputing.XferLang.XferJsonResult<T>.Value.get -> T
+ParksComputing.XferLang.XferJsonResult<T>.Value.init -> void
+ParksComputing.XferLang.XferJsonResult<T>.XferJsonResult() -> void
+ParksComputing.XferLang.XferJsonResult<T>.XferJsonResult(T Value, System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.XferDiagnostic!>! Diagnostics) -> void
 ParksComputing.XferLang.XferLimits
 ParksComputing.XferLang.XferLimits.<Clone>$() -> ParksComputing.XferLang.XferLimits!
 ParksComputing.XferLang.XferLimits.Depth.get -> int
@@ -252,12 +275,24 @@ ParksComputing.XferLang.XferSymbol.XferSymbol(string! name, System.Collections.G
 ParksComputing.XferLang.XferTemporal
 ParksComputing.XferLang.XferTemporal.Lexeme.get -> string!
 ParksComputing.XferLang.XferTemporal.TemporalKind.get -> ParksComputing.XferLang.XferTemporalKind
+ParksComputing.XferLang.XferTemporal.TryGetDateOnly(out System.DateOnly value) -> bool
+ParksComputing.XferLang.XferTemporal.TryGetDateTime(out System.DateTime value) -> bool
+ParksComputing.XferLang.XferTemporal.TryGetDateTimeOffset(out System.DateTimeOffset value) -> bool
+ParksComputing.XferLang.XferTemporal.TryGetTimeOnly(out System.TimeOnly value) -> bool
 ParksComputing.XferLang.XferTemporal.XferTemporal(ParksComputing.XferLang.XferTemporalKind temporalKind, string! lexeme, System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
 ParksComputing.XferLang.XferTemporalKind
 ParksComputing.XferLang.XferTemporalKind.Date = 0 -> ParksComputing.XferLang.XferTemporalKind
 ParksComputing.XferLang.XferTemporalKind.DateTime = 3 -> ParksComputing.XferLang.XferTemporalKind
 ParksComputing.XferLang.XferTemporalKind.LocalDateTime = 2 -> ParksComputing.XferLang.XferTemporalKind
 ParksComputing.XferLang.XferTemporalKind.Time = 1 -> ParksComputing.XferLang.XferTemporalKind
+ParksComputing.XferLang.XferToJsonOptions
+ParksComputing.XferLang.XferToJsonOptions.<Clone>$() -> ParksComputing.XferLang.XferToJsonOptions!
+ParksComputing.XferLang.XferToJsonOptions.Equals(ParksComputing.XferLang.XferToJsonOptions? other) -> bool
+ParksComputing.XferLang.XferToJsonOptions.Indent.get -> int
+ParksComputing.XferLang.XferToJsonOptions.Indent.init -> void
+ParksComputing.XferLang.XferToJsonOptions.StringifyBigIntegers.get -> bool
+ParksComputing.XferLang.XferToJsonOptions.StringifyBigIntegers.init -> void
+ParksComputing.XferLang.XferToJsonOptions.XferToJsonOptions() -> void
 ParksComputing.XferLang.XferValue
 ParksComputing.XferLang.XferValue.Annotations.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.XferAnnotation!>!
 ParksComputing.XferLang.XferValue.Equals(ParksComputing.XferLang.XferValue? other) -> bool
@@ -304,7 +339,11 @@ override ParksComputing.XferLang.XferDiagnostic.Equals(object? obj) -> bool
 override ParksComputing.XferLang.XferDiagnostic.GetHashCode() -> int
 override ParksComputing.XferLang.XferDiagnostic.ToString() -> string!
 override ParksComputing.XferLang.XferFractional.Kind.get -> ParksComputing.XferLang.XferValueKind
+override ParksComputing.XferLang.XferFromJsonOptions.Equals(object? obj) -> bool
+override ParksComputing.XferLang.XferFromJsonOptions.GetHashCode() -> int
+override ParksComputing.XferLang.XferFromJsonOptions.ToString() -> string!
 override ParksComputing.XferLang.XferInteger.Kind.get -> ParksComputing.XferLang.XferValueKind
+override ParksComputing.XferLang.XferJsonResult<T>.GetHashCode() -> int
 override ParksComputing.XferLang.XferLimits.Equals(object? obj) -> bool
 override ParksComputing.XferLang.XferLimits.GetHashCode() -> int
 override ParksComputing.XferLang.XferLimits.ToString() -> string!
@@ -318,6 +357,9 @@ override ParksComputing.XferLang.XferSequence.Kind.get -> ParksComputing.XferLan
 override ParksComputing.XferLang.XferString.Kind.get -> ParksComputing.XferLang.XferValueKind
 override ParksComputing.XferLang.XferSymbol.Kind.get -> ParksComputing.XferLang.XferValueKind
 override ParksComputing.XferLang.XferTemporal.Kind.get -> ParksComputing.XferLang.XferValueKind
+override ParksComputing.XferLang.XferToJsonOptions.Equals(object? obj) -> bool
+override ParksComputing.XferLang.XferToJsonOptions.GetHashCode() -> int
+override ParksComputing.XferLang.XferToJsonOptions.ToString() -> string!
 override ParksComputing.XferLang.XferValue.Equals(object? obj) -> bool
 override ParksComputing.XferLang.XferValue.GetHashCode() -> int
 override ParksComputing.XferLang.XferWriteOptions.Equals(object? obj) -> bool
@@ -342,6 +384,13 @@ static ParksComputing.XferLang.XferDocument.Parse(string! text, ParksComputing.X
 static ParksComputing.XferLang.XferDocument.ParseAsync(System.IO.Stream! stream, ParksComputing.XferLang.XferParseOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ParksComputing.XferLang.XferParseResult!>
 static ParksComputing.XferLang.XferDocument.ParseValue(System.ReadOnlySpan<byte> utf8, ParksComputing.XferLang.XferParseOptions? options = null) -> ParksComputing.XferLang.XferValue!
 static ParksComputing.XferLang.XferDocument.ParseValue(string! text, ParksComputing.XferLang.XferParseOptions? options = null) -> ParksComputing.XferLang.XferValue!
+static ParksComputing.XferLang.XferFromJsonOptions.operator !=(ParksComputing.XferLang.XferFromJsonOptions? left, ParksComputing.XferLang.XferFromJsonOptions? right) -> bool
+static ParksComputing.XferLang.XferFromJsonOptions.operator ==(ParksComputing.XferLang.XferFromJsonOptions? left, ParksComputing.XferLang.XferFromJsonOptions? right) -> bool
+static ParksComputing.XferLang.XferJson.FromJson(System.ReadOnlySpan<byte> utf8Json, ParksComputing.XferLang.XferFromJsonOptions? options = null) -> ParksComputing.XferLang.XferJsonResult<ParksComputing.XferLang.XferValue?>
+static ParksComputing.XferLang.XferJson.FromJson(string! json, ParksComputing.XferLang.XferFromJsonOptions? options = null) -> ParksComputing.XferLang.XferJsonResult<ParksComputing.XferLang.XferValue?>
+static ParksComputing.XferLang.XferJson.ToJson(ParksComputing.XferLang.XferValue! value, ParksComputing.XferLang.XferToJsonOptions? options = null) -> ParksComputing.XferLang.XferJsonResult<string!>
+static ParksComputing.XferLang.XferJsonResult<T>.operator !=(ParksComputing.XferLang.XferJsonResult<T> left, ParksComputing.XferLang.XferJsonResult<T> right) -> bool
+static ParksComputing.XferLang.XferJsonResult<T>.operator ==(ParksComputing.XferLang.XferJsonResult<T> left, ParksComputing.XferLang.XferJsonResult<T> right) -> bool
 static ParksComputing.XferLang.XferLimits.Default.get -> ParksComputing.XferLang.XferLimits!
 static ParksComputing.XferLang.XferLimits.operator !=(ParksComputing.XferLang.XferLimits? left, ParksComputing.XferLang.XferLimits? right) -> bool
 static ParksComputing.XferLang.XferLimits.operator ==(ParksComputing.XferLang.XferLimits? left, ParksComputing.XferLang.XferLimits? right) -> bool
@@ -350,10 +399,14 @@ static ParksComputing.XferLang.XferParseOptions.operator ==(ParksComputing.XferL
 static ParksComputing.XferLang.XferPosition.Origin.get -> ParksComputing.XferLang.XferPosition
 static ParksComputing.XferLang.XferPosition.operator !=(ParksComputing.XferLang.XferPosition left, ParksComputing.XferLang.XferPosition right) -> bool
 static ParksComputing.XferLang.XferPosition.operator ==(ParksComputing.XferLang.XferPosition left, ParksComputing.XferLang.XferPosition right) -> bool
+static ParksComputing.XferLang.XferToJsonOptions.operator !=(ParksComputing.XferLang.XferToJsonOptions? left, ParksComputing.XferLang.XferToJsonOptions? right) -> bool
+static ParksComputing.XferLang.XferToJsonOptions.operator ==(ParksComputing.XferLang.XferToJsonOptions? left, ParksComputing.XferLang.XferToJsonOptions? right) -> bool
 static ParksComputing.XferLang.XferWriteOptions.operator !=(ParksComputing.XferLang.XferWriteOptions? left, ParksComputing.XferLang.XferWriteOptions? right) -> bool
 static ParksComputing.XferLang.XferWriteOptions.operator ==(ParksComputing.XferLang.XferWriteOptions? left, ParksComputing.XferLang.XferWriteOptions? right) -> bool
 static ParksComputing.XferLang.XferWriter.Canonical(ParksComputing.XferLang.XferParseResult! result, ParksComputing.XferLang.XferWriteOptions? options = null) -> string!
 static ParksComputing.XferLang.XferWriter.Canonical(ParksComputing.XferLang.XferValue! value, ParksComputing.XferLang.XferWriteOptions? options = null) -> string!
 static ParksComputing.XferLang.XferWriter.Canonical(ParksComputing.XferLang.XferValue! value, System.IO.TextWriter! writer, ParksComputing.XferLang.XferWriteOptions? options = null) -> void
+~override ParksComputing.XferLang.XferJsonResult<T>.Equals(object obj) -> bool
+~override ParksComputing.XferLang.XferJsonResult<T>.ToString() -> string
 ~override ParksComputing.XferLang.XferPosition.Equals(object obj) -> bool
 ~override ParksComputing.XferLang.XferPosition.ToString() -> string
