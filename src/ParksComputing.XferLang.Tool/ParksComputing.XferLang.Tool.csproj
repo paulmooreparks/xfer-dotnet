@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>xfer</AssemblyName>
+    <RootNamespace>ParksComputing.XferLang.Tool</RootNamespace>
+    <PackageId>ParksComputing.XferLang.Tool</PackageId>
+    <Description>The xfer command line tool: validate, format and convert XferLang documents.</Description>
+    <PackageTags>xferlang;xfer;cli;dotnet-tool</PackageTags>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>xfer</ToolCommandName>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ParksComputing.XferLang/ParksComputing.XferLang.csproj" />
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

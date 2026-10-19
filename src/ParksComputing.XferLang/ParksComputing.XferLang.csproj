@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>ParksComputing.XferLang</PackageId>
+    <Description>XferLang 1.0 for .NET: a data format with no escape sequences, typed values and line-independent syntax. Parser, lossless syntax tree, canonical writer, JSON mapping and object mapper.</Description>
+    <PackageTags>xferlang;xfer;data-format;parser;serialization;json;configuration</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <InternalsVisibleTo Include="ParksComputing.XferLang.Tests" />
+  </ItemGroup>
+
+</Project>
