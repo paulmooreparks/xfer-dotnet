@@ -1,0 +1,422 @@
+<! document { xferlang "0.15" } !>
+{
+    slug "home"
+    title "Home"
+    url "/home"
+    description "Paul's Thoughts on Computing and Other Stuff"
+    </ The menu bar logo menu (Architecture/site-menu-design.md). Each entry
+       is a title, the first the logo's own. In a title's nav:
+         { slug "about" } or { title "…" url "…" }    a link
+         { title "…" command "name" args { … } }      a command
+         { title "…" nav [ … ] }                      a submenu
+         { heading "…" nav [ … ] }                    a heading over entries
+         { separator ~true }                          a separator
+         { from "applets" } or { from "sections" }    entries of the nav
+       and when "window" or "classic" shows any entry in that view only.
+       The commands are view, theme, find, windows.minimize-all,
+       windows.restore-all, windows.close-all, open { applet state } and
+       run { script cwd }. />
+    menu [
+        {
+            menu-id "site"
+            title "Parks Computing"
+            icon "/favicon-32x32.png"
+            nav [
+                { title "Home" url "/" }
+                { slug "about" title "About Parks Computing" }
+                { separator ~true }
+                {
+                    slug "settings"
+                    icon "/images/icons/settings.svg"
+                    title "Settings"
+                    description "Theme, default view, window preferences, and browser data"
+                    tags [ "web apps" "site development" ]
+                }
+            ]
+        }
+        {
+            menu-id "go"
+            title "Go"
+            nav [
+                { title "Find in the list" command "find" when "window" }
+                { separator ~true when "classic" }
+                { title "All" url "/home" when "classic" }
+                { from "sections" when "classic" }
+            ]
+        }
+        {
+            menu-id "applets"
+            title "Applets"
+            nav [
+                { from "applets" }
+                { separator ~true when "admin" }
+                { slug "visits" title "Visits" when "admin" }
+                { slug "logs" title "Server log" when "superuser" }
+                { slug "chat" title "Chat" when "admin" }
+                { slug "poker" title "Poker" when "admin" }
+            ]
+        }
+        {
+            menu-id "view"
+            title "View"
+            nav [
+                { title "Windowed view" command "view" args { value "window" } }
+                { title "Classic view" command "view" args { value "classic" } }
+                { separator ~true when "window" }
+                { title "Hide the article list" command "sidebar" when "window" }
+                { title "Article list on the right" command "sidebar-side" when "window" }
+                { separator ~true }
+                { title "Theme" nav [
+                    { title "Light" command "theme" args { value "light" } }
+                    { title "Dark" command "theme" args { value "dark" } }
+                    { title "Follow the system" command "theme" args { value "system" } }
+                ] }
+            ]
+        }
+        {
+            menu-id "window"
+            title "Window"
+            when "window"
+            window-commands ~true
+            nav [ ]
+        }
+        {
+            menu-id "help"
+            title "Help"
+            nav [
+                { slug "site-help" title "Site help and keyboard navigation" }
+                { slug "terminal-guide" title "Terminal Guide" }
+                { separator ~true }
+                { slug "privacy" title "Privacy policy" }
+                { slug "terms" title "Terms of use" }
+            ]
+        }
+    ]
+    nav [
+        {
+            slug "articles"
+            title "Articles"
+            description "Articles on computing and other stuff"
+            </ The entries of a feed section are articles: dated, read from their
+               content files where this file leaves things out, and published in
+               the RSS feed. They show in the order they are listed here. />
+            feed ~true
+            nav [
+                {
+                    slug "one-word-or-two"
+                    description "Every day, I set up my everyday setup."
+                    excerpt <"Every day, I set up my everyday setup.">
+                    tags [ "grammar" "writing" ]
+                }
+                {
+                    slug "coincidences"
+                    description "Sometimes, when you fly, it's better not to look up your plane's history."
+                    excerpt <"Sometimes, when you fly, it's better not to look up your plane's history.">
+                    tags [ "travel" ]
+                }
+                {
+                    slug "barcode-generator"
+                    description "My 2015 barcode generator, rewritten to lay out embedded data and read it back"
+                    excerpt <"My 2015 barcode generator, rewritten: retail symbologies drawn to a canvas, with layouts that put named data inside a barcode and read it back out.">
+                    tags [ "web apps" "barcodes" "programming" ]
+                }
+                {
+                    slug "barcode-flash-cards"
+                    description "A web app for learning to recognise barcode symbologies on sight"
+                    excerpt <"I'm getting back into the retail point-of-sale space, and I needed a way to brush up on my skills at identifying barcode symbologies on sight, so I cooked up
+            a little web app that generates barcode flash cards.">
+                    tags [ "web apps" "barcodes" ]
+                }
+                {
+                    slug "resume-of-paul-m-parks"
+                    description "Updated Résumé"
+                    excerpt <"Fitting almost 35 years of professional experience into a four-page Microsoft Word document is a daunting task!">
+                    tags [ "career" "resume" "cv" ]
+                }
+                { slug "fixing-the-plumbing" description "A parable about tap handles, and how fresh eyes find better ways" tags [ "process" ] }
+                { slug "excel-employee-capacity-spreadsheet" description "An Excel spreadsheet for tracking employee utilisation and capacity for project work" tags [ "excel" "spreadsheets" "business tools" ] }
+                { slug "power-of-guitar" description "In which I discover that girls like guitar" tags [ "music" "guitar" ] }
+                { slug "how-many-years-of-pizza" description "Why the question of years of experience is so hard to answer" tags [ "programming" "career" ] }
+                { slug "next-train-to-bracknell" description "A late-night question on an English train platform goes sideways" tags [ "travel" ] }
+                { slug "so-much-more-exotic" title<'"That sounds so much more exotic than here!"'> description "Exotic is just a matter of perspective" tags [ "travel" ] }
+                { slug "just-spell-the-month" description "Is it due on May the 10th or the 5th of October? Spell the month." tags [ "best practices" "date formats" ] }
+                { slug "i-hate-screenshots-of-text" description "Why do people take screenshots of text?" tags [ "accessibility" "best practices" ] }
+                { slug "act-now-before-price-increase" description "An actual advertisement from an actual newspaper" tags [ "business" "pricing" ] }
+                { slug "parks-laws-of-debugging" description "The laws of debugging I live by" tags [ "programming" "debugging" "best practices" ] }
+                {
+                    slug "on-travelling"
+                    description "Paper tickets, paper boarding passes, paper books, and Jimmy Buffett"
+                    excerpt <"I use train tickets and boarding passes as bookmarks, which of course makes me a weirdo in a couple of ways....">
+                    tags [ "travel" "personal" ]
+                }
+                { slug "vibe-coding" description "Can one really be creative when coding with an LLM?" tags [ "programming" "methodology" "development" ] }
+                </
+                {
+                    slug "sudoku"
+                    icon "/images/icons/sudoku.svg"
+                    excerpt <"I didn't like most of the Sudoku apps I found, so I decided to write one as a fun little evening and weekend project. It lets you edit and share games.">
+                    tags [ "web apps" "games" "programming" ]
+                }
+                />
+                { slug "fizzbuzz" description "My implementation of FizzBuzz in C++" tags [ "programming" "algorithms" "c++" ] }
+                { slug "personas-in-the-wild" description "The day I met one of my system personas in the wild" tags [ "ux" "design" "user research" ] }
+                { slug "new-website-design" description "Moving this site from WordPress to ASP.NET Razor Pages" tags [ "web design" "site development" ] }
+                {
+                    slug "becoming-a-developer-overnight-in-only-five-years"
+                    description "Reflecting on my own path into a software career, prompted by Cal Newport"
+                    excerpt <"This post was inspired by an article on Cal Newport's site that caused me to reflect on my path to my current career.">
+                    tags [ "career" "development" "learning" ]
+                }
+                { slug "set-associative-cache-in-c-part-1-analysis-initial-design" description "Analysing the problem and a first design for a set-associative cache in C#" tags [ "programming" "c#" "algorithms" "caching" ] }
+                { slug "set-associative-cache-in-c-part-2-interface-design" description "Designing the interface of a set-associative cache in C#" tags [ "programming" "c#" "algorithms" "caching" ] }
+                { slug "scheduling-every-minute-revisited" description "How planning every minute of my day held up in a new job" tags [ "productivity" "time management" ] }
+                </{ slug "conways-game-of-life" tags [ "programming" "algorithms" "web apps" ] }/>
+                { slug "how-i-plan-my-day" description "How I plan every minute of my day to stay productive" tags [ "productivity" "planning" "time management" ] }
+                { slug "pbrain" description "A Brainf**k extension with procedures, and a .NET compiler for it" tags [ "applications" "programming" "brainf**k" ] }
+                { slug "dragsens" description "A command-line Windows utility for setting mouse drag sensitivity" tags [ "applications" "programming" ] }
+                { slug "barbecue-and-project-management" description "What slow-smoked barbecue has in common with managing a project" tags [ "project management" "methodology" ] }
+                { slug "windragsens" description "A graphical Windows utility for setting and testing mouse drag sensitivity" tags [ "applications" "windows" "programming" ] }
+                { slug "master-foo-and-the-technical-recruiter" description "A Unix koan, in the style of Eric Raymond's Master Foo, about a technical recruiter" tags [ "career" "recruiting" "humor" ] }
+                { slug "george-orwell-and-effective-coding" description "What an Orwell essay on the English language teaches about writing code" tags [ "programming" "best practices" "writing" ] }
+                { slug "compute-magazine-archives" description "An online archive of COMPUTE!, the magazine that taught me to program" tags [ "archive" "compute magazine" ] }
+            ]
+        }
+        {
+            slug "applications"
+            title "Applications"
+            description "Here are some client-based applications I've written."
+            nav [
+                { slug "pbrain" description "A Brainf**k extension with procedures, and a .NET compiler for it" }
+                { slug "windragsens" description "A graphical Windows utility for setting and testing mouse drag sensitivity" }
+                { slug "dragsens" description "A command-line Windows utility for setting mouse drag sensitivity" }
+            ]
+        }
+        {
+            slug "applets"
+            title "Applets"
+            description "Here are some web-based applications written in PUDL."
+            nav [
+                {
+                    slug "theme-studio"
+                    icon "/images/icons/theme-studio.svg"
+                    win "0.9,0.9"
+                    title "PUDL Theme Studio"
+                    description "Make a PUDL theme: edit its colours, watch PUDL's components take them, check their contrast, and take the CSS"
+                    tags [ "web apps" "site development" ]
+                }
+                {
+                    slug "barcode-scanner"
+                    icon "/images/icons/barcode-scanner.svg"
+                    title "Barcode Scanner"
+                    description "Scan camera images and decode retail layouts"
+                    tags [ "web apps" "barcodes" "retail" ]
+                }
+                {
+                    slug "barcodes"
+                    icon "/images/icons/barcodes.svg"
+                    title "Barcode Tool"
+                    description "Make retail barcodes with embedded data, and read them back"
+                    tags [ "web apps" "barcodes" ]
+                }
+                {
+                    slug "terminal"
+                    icon "/images/icons/terminal.svg"
+                    win "0.5,0.7"
+                    min "420,220"
+                    title "Terminal"
+                    description "This site in terminal mode: browse with ls and cd, read with cat, launch the applets"
+                    tags [ "web apps" "site development" ]
+                }
+                {
+                    slug "files"
+                    icon "/images/icons/files.svg"
+                    win "0.6,0.75"
+                    title "Files"
+                    description "The site and your own files as folders: browse the pages, launch the applets, keep files of your own"
+                    tags [ "web apps" "site development" ]
+                }
+                {
+                    slug "editor"
+                    icon "/images/icons/editor.svg"
+                    win "0.6,0.8"
+                    title "Editor"
+                    description "A text editor for your own files, with syntax colouring, search and replace, and tabs"
+                    tags [ "web apps" "site development" ]
+                }
+                {
+                    slug "diff"
+                    icon "/images/icons/diff.svg"
+                    win "0.85,0.85"
+                    title "Diff Viewer"
+                    description "Compare two texts line by line, side by side, or in one column"
+                    tags [ "web apps" "site development" ]
+                }
+                {
+                    slug "sight-reader"
+                    icon "/images/icons/sight-reader.svg"
+                    win "0.7,0.85"
+                    title "Sight Reader"
+                    description "Practise reading music: name each note of a score as the cursor reaches it"
+                    tags [ "web apps" "music" ]
+                }
+                {
+                    slug "dice"
+                    icon "/images/icons/dice.svg"
+                    title "Dice"
+                    description "Roll up to three dice"
+                    tags [ "web apps" "games" ]
+                }
+                {
+                    slug "sudoku"
+                    icon "/images/icons/sudoku.svg"
+                    win "0.28,0.88"
+                    title "Sudoku"
+                    description "A Sudoku game that lets you edit and share games"
+                    tags [ "web apps" "games" ]
+                }
+                {
+                    slug "conway"
+                    icon "/images/icons/conway.svg"
+                    win "0.22,0.6"
+                    title "Conway's Game of Life"
+                    description "The game alone; the article about it is under Articles"
+                    tags [ "web apps" "games" "algorithms" ]
+                }
+                {
+                    slug "flashcards"
+                    icon "/images/icons/flashcards.svg"
+                    win "0.54,0.66"
+                    title "Barcode Flash Cards"
+                    description "The drill alone; the article about it is under Articles"
+                    tags [ "web apps" "barcodes" "learning" ]
+                }
+            ]
+        }
+        {
+            slug "projects"
+            title "Projects"
+            description "Some personal projects"
+            nav [
+                {
+                    slug "dinah"
+                    title "Dinah"
+                    description "An AI-native tool for tracking tasks for development, personal productivity, and life in general"
+                    excerpt "An AI-native tool for tracking tasks for development, personal productivity, and life in general"
+                    tags [ "programming" "dinah" ]
+                }
+                {
+                    slug "pudl"
+                    title "PUDL"
+                    description "PUDL: Pleasantly Usable Design Language, a framework and design language for application development that rejects flat design and gives obvious affordances to users"
+                    excerpt "PUDL: Pleasantly Usable Design Language, a framework and design language for application development that rejects flat design and gives obvious affordances to users"
+                    tags [ "design" "ux" "web design" "pudl" ]
+                }
+                {
+                    slug "tela"
+                    title "Tela"
+                    description "The enabling technology for Awan Saya, a federated cloud service"
+                    excerpt "The enabling technology for Awan Saya, a federated cloud service"
+                    tags [ "networking" "cloud" "programming" "tela" ]
+                }
+                {
+                    slug "xferlang"
+                    title "XferLang"
+                    description "A data format with explicit types, no escape sequences, and programmable processing instructions"
+                    excerpt "A data format with explicit types, no escape sequences, and programmable processing instructions"
+                    tags [ "programming" "data formats" "xferlang" ]
+                }
+                {
+                    slug "yavchn"
+                    title "YAVCHN"
+                    description "Yet Another Vibe-Coded Hacker News Wrapper"
+                    excerpt "Yet Another Vibe-Coded Hacker News Wrapper"
+                    tags [ "web apps" "vibe coding" "yavchn" ]
+                }
+                {
+                    slug "maize"
+                    title "Maize"
+                    description "A virtual machine for an ISA that I designed for fun and learning. Yes, it runs DOOM!"
+                    excerpt "A virtual machine for an ISA that I designed for fun and learning. Yes, it runs DOOM!"
+                    tags [ "programming" "virtual machines" "maize" ]
+                }
+                {
+                    slug "cliffer"
+                    title "Cliffer"
+                    description "A .NET library to make it easier to write CLI applications"
+                    excerpt "A .NET library to make it easier to write CLI applications"
+                    tags [ "programming" ".net" "cli" "cliffer" ]
+                }
+                {
+                    slug "cliffer-basic"
+                    title "Cliffer Basic"
+                    description "An old-school Basic interpreter written with Cliffer"
+                    excerpt "An old-school Basic interpreter written with Cliffer"
+                    tags [ "programming" ".net" "cli" "cliffer" ]
+                }
+                {
+                    slug "site-engine"
+                    title "Site Engine"
+                    description "The code for this site"
+                    excerpt "The code for this site"
+                    tags [ "site development" "web design" ".net" ]
+                }
+            ]
+        }
+        {
+            slug "links"
+            title "Links"
+            description "Links to other sites"
+            nav [
+                {
+                    slug "padmajairam"
+                    title "Padma Jairam"
+                    url "https://padmajairam.com/"
+                    description "My wife's psychology practice"
+                }
+                {
+                  slug "yavchn"
+                  title "YAVCHN"
+                  description "Yet Another Vibe-Coded Hacker-News Reader"
+                  url "https://yavchn.com"
+                }
+                {
+                    slug "github"
+                    title "GitHub"
+                    url "https://github.com/paulmooreparks/"
+                    description "My GitHub repositories"
+                }
+                {
+                    slug "linkedin"
+                    title "LinkedIn"
+                    url "https://www.linkedin.com/in/paulmooreparks/"
+                    description "My LinkedIn profile"
+                }
+            ]
+        }
+        {
+            slug "about"
+            title "About"
+            url "/page/about"
+            win "0.60,0.56"
+            description "About this site and its author"
+            tags [ "about" "site" ]
+        }
+        {
+            slug "github"
+            title "GitHub"
+            url "https://github.com/paulmooreparks/"
+            description "My GitHub repositories"
+        }
+        {
+            slug "linkedin"
+            title "LinkedIn"
+            url "https://www.linkedin.com/in/paulmooreparks/"
+            description "My LinkedIn profile"
+        }
+        {
+            slug "resume-of-paul-m-parks"
+            title "My Résumé"
+            description "My career history, skills and experience"
+        }
+    ]
+}

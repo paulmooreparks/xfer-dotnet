@@ -191,14 +191,22 @@ public static class XferDocument
 
     private static XferValue ValueOf(XferParseResult result) => result.Ok && result.Value is not null ? result.Value : throw new XferException(result.Diagnostics);
 
-    private static XferParseResult Finish(NormalizeResult normalized, XferLimits limits)
+    private static XferParseResult Finish(NormalizeResult normalized, XferLimits limits) => Finish(normalized, limits, withMap: false).Result;
+
+    /// <summary>Parses for the object mapper, which also wants to know where each value came from.</summary>
+    internal static (XferParseResult Result, SourceMap? Map) ParseForMapping(ReadOnlySpan<byte> utf8, XferLimits limits) => Finish(Normalizer.Normalize(utf8, limits), limits, withMap: true);
+
+    /// <inheritdoc cref="ParseForMapping(ReadOnlySpan{byte}, XferLimits)"/>
+    internal static (XferParseResult Result, SourceMap? Map) ParseForMapping(string text, XferLimits limits) => Finish(Normalizer.Normalize(text, limits), limits, withMap: true);
+
+    private static (XferParseResult Result, SourceMap? Map) Finish(NormalizeResult normalized, XferLimits limits, bool withMap)
     {
         if (normalized.Fault is { } fault)
         {
             // A document for an input that could not be read at all: no head, no root, nothing after.
             var empty = new TokenStream([], [new Token(XferTokenKind.EndOfFile, 0, 0, 0, 0)], []);
             var tree = new XferSyntaxTree(new SyntaxSource(empty, LineMap.Empty), null, null, [], 0);
-            return new XferParseResult(null, 1, tree, [fault], ok: false);
+            return (new XferParseResult(null, 1, tree, [fault], ok: false), null);
         }
 
         var pending = new List<PendingDiagnostic>();
@@ -207,6 +215,7 @@ public static class XferDocument
         (XferSyntaxTree parsed, int version) = Parser.Parse(source, limits, pending);
         List<XferDiagnostic> diagnostics = DiagnosticResolver.Resolve(pending, normalized.Lines);
         bool ok = !diagnostics.Exists(d => d.Severity == XferSeverity.Error);
-        return new XferParseResult(ok ? Projection.ToValue(parsed) : null, version, parsed, diagnostics, ok);
+        SourceMap? map = withMap && ok ? new SourceMap(normalized.Lines) : null;
+        return (new XferParseResult(ok ? Projection.ToValue(parsed, map) : null, version, parsed, diagnostics, ok), map);
     }
 }

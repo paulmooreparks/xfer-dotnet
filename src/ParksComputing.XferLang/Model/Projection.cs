@@ -8,6 +8,42 @@ using ParksComputing.XferLang.Syntax;
 namespace ParksComputing.XferLang.Model;
 
 /// <summary>
+/// Where in the source each value of a value model came from, kept only when a caller (the object
+/// mapper) asks, so that an error found later can be reported at the value it is about.
+/// </summary>
+internal sealed class SourceMap
+{
+    private readonly Dictionary<XferValue, int> values = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<XferObject, int[]> keys = new(ReferenceEqualityComparer.Instance);
+
+    public SourceMap(Text.LineMap lines)
+    {
+        Lines = lines;
+    }
+
+    public Text.LineMap Lines { get; }
+
+    public void Record(XferValue value, int offset) => values[value] = offset;
+
+    public void Copy(XferValue from, XferValue to)
+    {
+        if (values.TryGetValue(from, out int offset))
+        {
+            values[to] = offset;
+        }
+    }
+
+    public void RecordKeys(XferObject value, int[] offsets) => keys[value] = offsets;
+
+    /// <summary>The position of a value, or null for one the parse did not produce.</summary>
+    public XferPosition? PositionOf(XferValue value) => values.TryGetValue(value, out int offset) ? Lines.GetPosition(offset) : null;
+
+    /// <summary>The position of the key of an object's member, or null.</summary>
+    public XferPosition? PositionOfKey(XferObject value, int index) =>
+        keys.TryGetValue(value, out int[]? offsets) && index < offsets.Length ? Lines.GetPosition(offsets[index]) : null;
+}
+
+/// <summary>
 /// The value model of a parsed document (a port of xfer-js <c>src/value.ts</c>). Iterative, so
 /// depth cannot overflow the stack.
 /// </summary>
@@ -17,7 +53,7 @@ internal static class Projection
     /// The value of a tree, or null when the tree holds an error node, a missing value, an
     /// unclosed container or anything after the root. The caller has already seen an error then.
     /// </summary>
-    public static XferValue? ToValue(XferSyntaxTree tree)
+    public static XferValue? ToValue(XferSyntaxTree tree, SourceMap? map = null)
     {
         if (tree.Root is null || tree.Trailing.Count > 0)
         {
@@ -41,6 +77,10 @@ internal static class Projection
                         return null;
                     case XferScalarNode scalar:
                         produced = Annotate(Scalar(source, scalar.TokenIndex), node.AnnotationArray, null, source);
+                        if (produced is not null)
+                        {
+                            map?.Record(produced, source.TokenAt(scalar.TokenIndex).Start);
+                        }
                         if (produced is null)
                         {
                             return null;
@@ -94,7 +134,7 @@ internal static class Projection
             else
             {
                 stack.Pop();
-                produced = Finish(source, top);
+                produced = Finish(source, top, map);
                 if (produced is null)
                 {
                     return null;
@@ -121,11 +161,17 @@ internal static class Projection
         public List<XferValue> Done { get; }
     }
 
-    private static XferValue? Finish(SyntaxSource source, Frame frame)
+    private static XferValue? Finish(SyntaxSource source, Frame frame, SourceMap? map)
     {
         if (frame.Node is XferSequenceNode seq)
         {
-            return Annotate(new XferSequence([.. frame.Done], null), seq.AnnotationArray, null, source);
+            XferValue? sequence = Annotate(new XferSequence([.. frame.Done], null), seq.AnnotationArray, null, source);
+            if (sequence is not null)
+            {
+                map?.Record(sequence, source.TokenAt(seq.OpenIndex).Start);
+            }
+
+            return sequence;
         }
 
         var obj = (XferObjectNode)frame.Node;
@@ -137,6 +183,10 @@ internal static class Projection
 
             // An annotation before a pair describes the pair's value; there is no pair in the model.
             XferValue? member = Annotate(frame.Done[i], [], pair.AnnotationArray, source);
+            if (member is not null && !ReferenceEquals(member, frame.Done[i]))
+            {
+                map?.Copy(frame.Done[i], member);
+            }
             if (member is null)
             {
                 return null;
@@ -146,7 +196,20 @@ internal static class Projection
             entries[key] = member;
         }
 
-        return Annotate(new XferObject(entries, null), obj.AnnotationArray, null, source);
+        XferValue? result = Annotate(new XferObject(entries, null), obj.AnnotationArray, null, source);
+        if (result is XferObject o && map is not null)
+        {
+            map.Record(o, source.TokenAt(obj.OpenIndex).Start);
+            var keys = new int[obj.PairArray.Length];
+            for (int i = 0; i < keys.Length; i++)
+            {
+                keys[i] = source.TokenAt(obj.PairArray[i].KeyIndex).Start;
+            }
+
+            map.RecordKeys(o, keys);
+        }
+
+        return result;
     }
 
     /// <summary>Puts annotations on a value: those before it (a pair's), then its own, then the list given.</summary>

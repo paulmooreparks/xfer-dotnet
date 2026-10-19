@@ -1,4 +1,54 @@
 #nullable enable
+ParksComputing.XferLang.Serialization.XferConstructorAttribute
+ParksComputing.XferLang.Serialization.XferConstructorAttribute.XferConstructorAttribute() -> void
+ParksComputing.XferLang.Serialization.XferConverter
+ParksComputing.XferLang.Serialization.XferConverter<T>
+ParksComputing.XferLang.Serialization.XferConverter<T>.XferConverter() -> void
+ParksComputing.XferLang.Serialization.XferConverterAttribute
+ParksComputing.XferLang.Serialization.XferConverterAttribute.ConverterType.get -> System.Type!
+ParksComputing.XferLang.Serialization.XferConverterAttribute.XferConverterAttribute(System.Type! converterType) -> void
+ParksComputing.XferLang.Serialization.XferIgnoreAttribute
+ParksComputing.XferLang.Serialization.XferIgnoreAttribute.XferIgnoreAttribute() -> void
+ParksComputing.XferLang.Serialization.XferIgnoreCondition
+ParksComputing.XferLang.Serialization.XferIgnoreCondition.Never = 0 -> ParksComputing.XferLang.Serialization.XferIgnoreCondition
+ParksComputing.XferLang.Serialization.XferIgnoreCondition.WhenWritingDefault = 2 -> ParksComputing.XferLang.Serialization.XferIgnoreCondition
+ParksComputing.XferLang.Serialization.XferIgnoreCondition.WhenWritingNull = 1 -> ParksComputing.XferLang.Serialization.XferIgnoreCondition
+ParksComputing.XferLang.Serialization.XferNamingPolicy
+ParksComputing.XferLang.Serialization.XferNamingPolicy.XferNamingPolicy() -> void
+ParksComputing.XferLang.Serialization.XferPropertyNameAttribute
+ParksComputing.XferLang.Serialization.XferPropertyNameAttribute.Aliases.get -> string![]!
+ParksComputing.XferLang.Serialization.XferPropertyNameAttribute.Aliases.init -> void
+ParksComputing.XferLang.Serialization.XferPropertyNameAttribute.Name.get -> string!
+ParksComputing.XferLang.Serialization.XferPropertyNameAttribute.XferPropertyNameAttribute(string! name) -> void
+ParksComputing.XferLang.Serialization.XferPropertyOrderAttribute
+ParksComputing.XferLang.Serialization.XferPropertyOrderAttribute.Order.get -> int
+ParksComputing.XferLang.Serialization.XferPropertyOrderAttribute.XferPropertyOrderAttribute(int order) -> void
+ParksComputing.XferLang.Serialization.XferReadContext
+ParksComputing.XferLang.Serialization.XferReadContext.Options.get -> ParksComputing.XferLang.Serialization.XferSerializerOptions!
+ParksComputing.XferLang.Serialization.XferReadContext.Pointer.get -> string!
+ParksComputing.XferLang.Serialization.XferRequiredAttribute
+ParksComputing.XferLang.Serialization.XferRequiredAttribute.XferRequiredAttribute() -> void
+ParksComputing.XferLang.Serialization.XferSerializer
+ParksComputing.XferLang.Serialization.XferSerializerOptions
+ParksComputing.XferLang.Serialization.XferSerializerOptions.Converters.get -> System.Collections.Generic.IList<ParksComputing.XferLang.Serialization.XferConverter!>!
+ParksComputing.XferLang.Serialization.XferSerializerOptions.DefaultIgnoreCondition.get -> ParksComputing.XferLang.Serialization.XferIgnoreCondition
+ParksComputing.XferLang.Serialization.XferSerializerOptions.DefaultIgnoreCondition.set -> void
+ParksComputing.XferLang.Serialization.XferSerializerOptions.Limits.get -> ParksComputing.XferLang.XferLimits!
+ParksComputing.XferLang.Serialization.XferSerializerOptions.Limits.set -> void
+ParksComputing.XferLang.Serialization.XferSerializerOptions.PropertyNameCaseInsensitive.get -> bool
+ParksComputing.XferLang.Serialization.XferSerializerOptions.PropertyNameCaseInsensitive.set -> void
+ParksComputing.XferLang.Serialization.XferSerializerOptions.PropertyNamingPolicy.get -> ParksComputing.XferLang.Serialization.XferNamingPolicy?
+ParksComputing.XferLang.Serialization.XferSerializerOptions.PropertyNamingPolicy.set -> void
+ParksComputing.XferLang.Serialization.XferSerializerOptions.UnmappedMemberHandling.get -> ParksComputing.XferLang.Serialization.XferUnmappedMemberHandling
+ParksComputing.XferLang.Serialization.XferSerializerOptions.UnmappedMemberHandling.set -> void
+ParksComputing.XferLang.Serialization.XferSerializerOptions.XferSerializerOptions() -> void
+ParksComputing.XferLang.Serialization.XferSymbolAttribute
+ParksComputing.XferLang.Serialization.XferSymbolAttribute.XferSymbolAttribute() -> void
+ParksComputing.XferLang.Serialization.XferUnmappedMemberHandling
+ParksComputing.XferLang.Serialization.XferUnmappedMemberHandling.Disallow = 1 -> ParksComputing.XferLang.Serialization.XferUnmappedMemberHandling
+ParksComputing.XferLang.Serialization.XferUnmappedMemberHandling.Skip = 0 -> ParksComputing.XferLang.Serialization.XferUnmappedMemberHandling
+ParksComputing.XferLang.Serialization.XferWriteContext
+ParksComputing.XferLang.Serialization.XferWriteContext.Options.get -> ParksComputing.XferLang.Serialization.XferSerializerOptions!
 ParksComputing.XferLang.Syntax.XferAnnotationNode
 ParksComputing.XferLang.Syntax.XferAnnotationNode.Close.get -> ParksComputing.XferLang.Syntax.XferToken?
 ParksComputing.XferLang.Syntax.XferAnnotationNode.Name.get -> ParksComputing.XferLang.Syntax.XferToken?
@@ -314,9 +364,14 @@ ParksComputing.XferLang.XferWriteOptions.Limits.get -> ParksComputing.XferLang.X
 ParksComputing.XferLang.XferWriteOptions.Limits.init -> void
 ParksComputing.XferLang.XferWriteOptions.XferWriteOptions() -> void
 ParksComputing.XferLang.XferWriter
+abstract ParksComputing.XferLang.Serialization.XferConverter.CanConvert(System.Type! type) -> bool
+abstract ParksComputing.XferLang.Serialization.XferConverter<T>.Read(ParksComputing.XferLang.XferValue! value, ParksComputing.XferLang.Serialization.XferReadContext! context) -> T
+abstract ParksComputing.XferLang.Serialization.XferConverter<T>.Write(T value, ParksComputing.XferLang.Serialization.XferWriteContext! context) -> ParksComputing.XferLang.XferValue!
+abstract ParksComputing.XferLang.Serialization.XferNamingPolicy.ConvertName(string! name) -> string!
 abstract ParksComputing.XferLang.Syntax.XferNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
 abstract ParksComputing.XferLang.XferValue.Kind.get -> ParksComputing.XferLang.XferValueKind
 const ParksComputing.XferLang.XferWriter.MaxStringBytes = 536870912 -> int
+override ParksComputing.XferLang.Serialization.XferConverter<T>.CanConvert(System.Type! type) -> bool
 override ParksComputing.XferLang.Syntax.XferErrorNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
 override ParksComputing.XferLang.Syntax.XferObjectNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
 override ParksComputing.XferLang.Syntax.XferScalarNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
@@ -364,6 +419,20 @@ override ParksComputing.XferLang.XferValue.GetHashCode() -> int
 override ParksComputing.XferLang.XferWriteOptions.Equals(object? obj) -> bool
 override ParksComputing.XferLang.XferWriteOptions.GetHashCode() -> int
 override ParksComputing.XferLang.XferWriteOptions.ToString() -> string!
+static ParksComputing.XferLang.Serialization.XferNamingPolicy.CamelCase.get -> ParksComputing.XferLang.Serialization.XferNamingPolicy!
+static ParksComputing.XferLang.Serialization.XferNamingPolicy.KebabCaseLower.get -> ParksComputing.XferLang.Serialization.XferNamingPolicy!
+static ParksComputing.XferLang.Serialization.XferNamingPolicy.SnakeCaseLower.get -> ParksComputing.XferLang.Serialization.XferNamingPolicy!
+static ParksComputing.XferLang.Serialization.XferSerializer.Deserialize(string! text, System.Type! type, ParksComputing.XferLang.Serialization.XferSerializerOptions? options = null) -> object?
+static ParksComputing.XferLang.Serialization.XferSerializer.Deserialize<T>(ParksComputing.XferLang.XferValue! value, ParksComputing.XferLang.Serialization.XferSerializerOptions? options = null) -> T?
+static ParksComputing.XferLang.Serialization.XferSerializer.Deserialize<T>(System.ReadOnlySpan<byte> utf8, ParksComputing.XferLang.Serialization.XferSerializerOptions? options = null) -> T?
+static ParksComputing.XferLang.Serialization.XferSerializer.Deserialize<T>(string! text, ParksComputing.XferLang.Serialization.XferSerializerOptions? options = null) -> T?
+static ParksComputing.XferLang.Serialization.XferSerializer.DeserializeAsync(System.IO.Stream! stream, System.Type! type, ParksComputing.XferLang.Serialization.XferSerializerOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<object?>
+static ParksComputing.XferLang.Serialization.XferSerializer.DeserializeAsync<T>(System.IO.Stream! stream, ParksComputing.XferLang.Serialization.XferSerializerOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<T?>
+static ParksComputing.XferLang.Serialization.XferSerializer.Serialize(object? value, System.Type! type, ParksComputing.XferLang.Serialization.XferSerializerOptions? options = null) -> string!
+static ParksComputing.XferLang.Serialization.XferSerializer.Serialize<T>(T value, ParksComputing.XferLang.Serialization.XferSerializerOptions? options = null) -> string!
+static ParksComputing.XferLang.Serialization.XferSerializer.SerializeAsync(System.IO.Stream! stream, object? value, System.Type! type, ParksComputing.XferLang.Serialization.XferSerializerOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static ParksComputing.XferLang.Serialization.XferSerializer.SerializeAsync<T>(System.IO.Stream! stream, T value, ParksComputing.XferLang.Serialization.XferSerializerOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static ParksComputing.XferLang.Serialization.XferSerializer.SerializeToValue<T>(T value, ParksComputing.XferLang.Serialization.XferSerializerOptions? options = null) -> ParksComputing.XferLang.XferValue!
 static ParksComputing.XferLang.Syntax.XferSkippedSyntax.operator !=(ParksComputing.XferLang.Syntax.XferSkippedSyntax left, ParksComputing.XferLang.Syntax.XferSkippedSyntax right) -> bool
 static ParksComputing.XferLang.Syntax.XferSkippedSyntax.operator ==(ParksComputing.XferLang.Syntax.XferSkippedSyntax left, ParksComputing.XferLang.Syntax.XferSkippedSyntax right) -> bool
 static ParksComputing.XferLang.Syntax.XferToken.operator !=(ParksComputing.XferLang.Syntax.XferToken left, ParksComputing.XferLang.Syntax.XferToken right) -> bool

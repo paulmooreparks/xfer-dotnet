@@ -385,7 +385,7 @@ public static class XferWriter
     private static string Quote(string text) => Messages.JsQuote(Messages.Shorten(text));
 
     /// <summary>Whether text can be written bare, as a key or as a symbol (specification 4.3).</summary>
-    private static bool IsBareName(string text)
+    internal static bool IsBareName(string text)
     {
         bool first = true;
         int last = 0;

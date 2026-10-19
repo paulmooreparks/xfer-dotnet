@@ -1,0 +1,20 @@
+<! xfer 1 !>
+{
+    menu [
+        { menu-id "site" title "Parks Computing Admin" icon "/favicon-32x32.png"
+          nav [ { title "Admin home" url "/admin" } { slug "settings" title "Site settings" }
+                { separator true } { slug "account" } { slug "signout" } ] }
+        { menu-id "go" title "Go" nav [ { slug "site" } ] }
+        { menu-id "applets" title "Applets"
+          nav [ { slug "terminal" } { slug "editor" } { slug "files" } ] }
+        { menu-id "view" title "View" nav [
+            { title "Theme" nav [
+                { title "Light" command "theme" args { value "light" } }
+                { title "Dark" command "theme" args { value "dark" } }
+                { title "Follow the system" command "theme" args { value "system" } }
+            ] }
+        ] }
+        { menu-id "window" title "Window" when "window" window-commands true nav [ ] }
+        { menu-id "help" title "Help" nav [ ] }
+    ]
+}
