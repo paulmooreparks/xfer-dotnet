@@ -579,3 +579,12 @@ Done 2026-10-19 (Sonnet). `Writing/StringDelimiters.cs` ports xfer-js `src/strin
 - **Size is counted in UTF-8 bytes** (xfer-js counts UTF-16 units); the two agree for ASCII and differ only near the limit for other text.
 - **The checks for a parsed result are skipped** (it is trusted), except that a symbol is always checked, as in xfer-js.
 - **`Compact`** is not written: the design dropped it (section 9.3).
+
+Review of step 6 (Opus, cold): 69,397 hand-built values through both writers agreed except for one case; five confirmed defects, all applied (the two shared with xfer-js were fixed there first, `e001abe`):
+
+- **A symbol with a lone surrogate was written bare** (the .NET-only defect): `EnumerateRunes` is documented to turn invalid UTF-16 into U+FFFD, an identifier character. `IsBareName` now decodes with `Rune.DecodeFromUtf16` and refuses invalid UTF-16.
+- **An empty collection one level past the depth limit was written,** and the default parser refused the result. The depth check now precedes the empty-collection shortcut (both writers).
+- **The size count left out the head and the final line feed** (both writers). It now starts with them.
+- **A legal raised limit ended in `OutOfMemoryException`:** with `Depth` and `DocumentBytes` raised, the output of a deep value is larger than a string can hold, and the `TextWriter` overload built the whole string first. The `TextWriter` overload now writes in 64 KB chunks and has no ceiling of its own (the document size limit still applies); the methods that return a string refuse output over `XferWriter.MaxStringBytes` (512 MiB of UTF-8, the library's own documented ceiling, since no documentation promises a maximum string length) with `XFER0601` and say to use a `TextWriter`. The ceiling itself is not covered by a test, because reaching it needs half a gigabyte of output.
+- **A parsed integer rebuilt into a new value was converted twice** (27 s at 10 million digits). A parsed integer that has not been read says its value follows from its spelling, and the writer skips the comparison.
+- **Smaller:** a lexeme is judged under the writer's own limits (a raised `TokenBytes` no longer refuses a rebuilt long fractional); error messages shorten what they quote; two assertions that compared output with a re-reading of itself, and two that only asserted non-empty output, now assert the right thing.

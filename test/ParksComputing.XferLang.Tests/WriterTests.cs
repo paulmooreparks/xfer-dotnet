@@ -201,7 +201,10 @@ public class WriterTests
             ]);
         string text = XferWriter.Canonical(value);
         Assert.Equal("{\n    <! lang en !>\n    name \"Ada\"\n    n 0xff\n    #\"say \"hi\"\"# [\n        true\n        null\n        -inf\n    ]\n}\n", text); // the key ends with a quote, so it takes the hash form
-        Assert.Equal(XferDocument.ParseValue(text), XferDocument.ParseValue(XferWriter.Canonical(XferDocument.ParseValue(text))));
+        var reread = (XferObject)XferDocument.ParseValue(text);
+        Assert.Equal(["name", "n", "say \"hi\""], reread.Keys);
+        Assert.Equal(new BigInteger(255), ((XferInteger)reread["n"]).Value);
+        Assert.Equal(XferWriter.Canonical(reread), text);
         var writer = new System.IO.StringWriter();
         XferWriter.Canonical(value, writer);
         Assert.Equal(text, writer.ToString());
@@ -224,7 +227,126 @@ public class WriterTests
         string text = XferWriter.Canonical(value, options);
         Assert.StartsWith("[\n    [\n", text, StringComparison.Ordinal);
         XferParseResult parsed = XferDocument.Parse(new string('[', 500) + new string(']', 500), new XferParseOptions { Limits = options.Limits });
-        Assert.NotEmpty(XferWriter.Canonical(parsed, options));
+        Assert.Equal(500, XferWriter.Canonical(parsed, options).Count(c => c == '['));
+    }
+
+    [Fact]
+    public void AnEmptyCollectionCountsAsALevel()
+    {
+        XferValue Nest(int depth)
+        {
+            XferValue v = new XferSequence([]);
+            for (int i = 1; i < depth; i++)
+            {
+                v = new XferSequence([v]);
+            }
+
+            return v;
+        }
+
+        Assert.Throws<XferException>(() => XferWriter.Canonical(Nest(257)));
+        Assert.True(XferDocument.Parse(XferWriter.Canonical(Nest(256))).Ok);
+        Assert.Throws<XferException>(() => XferWriter.Canonical(Nest(4), new XferWriteOptions { Limits = new XferLimits { Depth = 3 } }));
+        Assert.Throws<XferException>(() => XferWriter.Canonical(new XferObject([new KeyValuePair<string, XferValue>("a", new XferObject([]))]), new XferWriteOptions { Limits = new XferLimits { Depth = 1 } }));
+    }
+
+    [Fact]
+    public void TheHeadAndTheFinalLineFeedCountTowardsTheDocumentSize()
+    {
+        var limits = new XferWriteOptions { Limits = new XferLimits { DocumentBytes = 6 } };
+        Assert.Equal("\"aaa\"\n", XferWriter.Canonical(new XferString("aaa"), limits));
+        Assert.Throws<XferException>(() => XferWriter.Canonical(new XferString("aaaa"), limits));
+        XferParseResult headed = XferDocument.Parse("<! xfer 1 !> 1");
+        Assert.Throws<XferException>(() => XferWriter.Canonical(headed, limits));
+        Assert.Equal("<! xfer 1 !>\n1\n", XferWriter.Canonical(headed, new XferWriteOptions { Limits = new XferLimits { DocumentBytes = 15 } }));
+        Assert.Throws<XferException>(() => XferWriter.Canonical(headed, new XferWriteOptions { Limits = new XferLimits { DocumentBytes = 14 } }));
+    }
+
+    [Fact]
+    public void ASymbolOrKeyWithInvalidUtf16IsRefusedNotWrittenBare()
+    {
+        foreach (string bad in new[] { "\uD835", "\uDC00", "a\uD835", "\uD835a", "a\uD835b" })
+        {
+            Assert.Throws<ArgumentException>(() => XferWriter.Canonical(new XferSymbol(bad)));
+            // As a key it is a string, which refuses a lone surrogate too.
+            Assert.Throws<ArgumentException>(() => XferWriter.Canonical(new XferObject([new KeyValuePair<string, XferValue>(bad, new XferNull())])));
+        }
+
+        Assert.Equal("𝒜\n", XferWriter.Canonical(new XferSymbol("𝒜")));
+    }
+
+    [Fact]
+    public void WritingToATextWriterStreamsAndGivesTheSameTextAsTheStringMethod()
+    {
+        XferValue value = new XferNull();
+        for (int i = 0; i < 2500; i++)
+        {
+            value = new XferSequence([value, new XferString("x")]);
+        }
+
+        var options = new XferWriteOptions { Limits = new XferLimits { Depth = 5000 } };
+        string whole = XferWriter.Canonical(value, options);
+        var counting = new ChunkCountingWriter();
+        XferWriter.Canonical(value, counting, options);
+        Assert.Equal(whole, counting.ToString());
+        Assert.True(counting.Writes > 100, $"{counting.Writes} writes: the output was not streamed in chunks");
+    }
+
+    private sealed class ChunkCountingWriter : System.IO.TextWriter
+    {
+        private readonly StringBuilder text = new();
+
+        public int Writes { get; private set; }
+
+        public override Encoding Encoding => Encoding.UTF8;
+
+        public override void Write(char value) => text.Append(value);
+
+        public override void Write(string? value)
+        {
+            Writes++;
+            text.Append(value);
+        }
+
+        public override void Write(StringBuilder? value)
+        {
+            Writes++;
+            text.Append(value);
+        }
+
+        public override string ToString() => text.ToString();
+    }
+
+    [Fact]
+    public void AParsedIntegerRebuiltIntoANewValueIsNotConvertedTwice()
+    {
+        string digits = "1" + new string('7', 2_000_000);
+        var parsed = (XferInteger)XferDocument.ParseValue(digits);
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        string text = XferWriter.Canonical(new XferSequence([parsed, parsed]));
+        timer.Stop();
+        Assert.True(timer.ElapsedMilliseconds < 1_000, $"{timer.ElapsedMilliseconds} ms");
+        Assert.Contains(digits, text, StringComparison.Ordinal);
+
+        // A value that has been read is checked against its spelling, which still agrees.
+        Assert.True(parsed.Value > 0);
+        Assert.Contains(digits, XferWriter.Canonical(new XferSequence([parsed])), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ALexemeIsJudgedUnderTheWritersOwnLimits()
+    {
+        var tight = new XferWriteOptions { Limits = new XferLimits { TokenBytes = 3 } };
+        Assert.Equal("[\n    1.5\n]\n", XferWriter.Canonical(new XferSequence([new XferFractional("1.5")]), tight));
+        Assert.Throws<ArgumentException>(() => XferWriter.Canonical(new XferSequence([new XferFractional("1.25")]), tight));
+        Assert.Throws<ArgumentException>(() => XferWriter.Canonical(new XferFractional(new string('1', 40) + ".5"), tight));
+    }
+
+    [Fact]
+    public void ErrorMessagesDoNotQuoteAHugeValueInFull()
+    {
+        ArgumentException e = Assert.Throws<ArgumentException>(() => XferWriter.Canonical(new XferSymbol(new string('?', 10_000))));
+        Assert.True(e.Message.Length < 200, e.Message.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]
@@ -233,7 +355,7 @@ public class WriterTests
         XferValue value = new XferSequence(Enumerable.Range(0, 1000).Select(i => (XferValue)new XferString("abcdefghij")));
         XferException e = Assert.Throws<XferException>(() => XferWriter.Canonical(value, new XferWriteOptions { Limits = new XferLimits { DocumentBytes = 5000 } }));
         Assert.Equal(XferDiagnosticCode.XFER0601, Assert.Single(e.Diagnostics).Code);
-        Assert.NotEmpty(XferWriter.Canonical(value));
+        Assert.Equal(1000 + 2, XferWriter.Canonical(value).Count(c => c == (char)10));
     }
 
     [Fact]

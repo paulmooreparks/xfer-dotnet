@@ -283,6 +283,7 @@ ParksComputing.XferLang.XferWriteOptions.XferWriteOptions() -> void
 ParksComputing.XferLang.XferWriter
 abstract ParksComputing.XferLang.Syntax.XferNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
 abstract ParksComputing.XferLang.XferValue.Kind.get -> ParksComputing.XferLang.XferValueKind
+const ParksComputing.XferLang.XferWriter.MaxStringBytes = 536870912 -> int
 override ParksComputing.XferLang.Syntax.XferErrorNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
 override ParksComputing.XferLang.Syntax.XferObjectNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
 override ParksComputing.XferLang.Syntax.XferScalarNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind

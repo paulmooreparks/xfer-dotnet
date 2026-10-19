@@ -49,7 +49,7 @@ public static class XferWriter
 
         XferValue value = result.Value ?? throw new XferException(result.Diagnostics, "the parse produced no value");
         bool head = result.Tree.Head is not null;
-        return Write(value, head, trusted: true, (options ?? Defaults).Limits);
+        return new Context((options ?? Defaults).Limits, trusted: true, sink: null).WriteDocument(value, head)!;
     }
 
     /// <summary>
@@ -62,25 +62,32 @@ public static class XferWriter
     public static string Canonical(XferValue value, XferWriteOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(value);
-        return Write(value, head: false, trusted: false, (options ?? Defaults).Limits);
+        return new Context((options ?? Defaults).Limits, trusted: false, sink: null).WriteDocument(value, head: false)!;
     }
 
-    /// <summary>Writes the canonical form of a value to a text writer.</summary>
+    /// <summary>
+    /// Writes the canonical form of a value to a text writer as it goes, in chunks, so that a value
+    /// whose output is too large to hold as one string can still be written. If the value is
+    /// refused part way (a depth or size limit, or a part no document could hold), what was already
+    /// written stays written.
+    /// </summary>
     /// <inheritdoc cref="Canonical(XferValue, XferWriteOptions?)"/>
     public static void Canonical(XferValue value, TextWriter writer, XferWriteOptions? options = null)
     {
+        ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(writer);
-        writer.Write(Canonical(value, options));
+        new Context((options ?? Defaults).Limits, trusted: false, writer).WriteDocument(value, head: false);
     }
+
+    /// <summary>
+    /// The most output, in UTF-8 bytes, that the methods that return a string will build. It is the
+    /// library's own ceiling, well under the length of the longest string a runtime can hold (which
+    /// no documentation promises), and it applies whatever <see cref="XferLimits.DocumentBytes"/>
+    /// says. Output past it is refused with <c>XFER0601</c>; write it to a <see cref="TextWriter"/>.
+    /// </summary>
+    public const int MaxStringBytes = 1 << 29;
 
     private static readonly XferWriteOptions Defaults = new();
-
-    private static string Write(XferValue root, bool head, bool trusted, XferLimits limits)
-    {
-        var context = new Context(limits, trusted);
-        string body = context.WriteValue(root);
-        return (head ? "<! xfer 1 !>\n" : string.Empty) + body + "\n";
-    }
 
     private const string Indent = "    ";
 
@@ -112,22 +119,46 @@ public static class XferWriter
     {
         private readonly XferLimits limits;
         private readonly bool trusted;
+        private const int FlushAt = 1 << 16;
         private readonly StringBuilder output = new();
+        private readonly TextWriter? sink;
         private readonly Stack<Frame> stack = new();
         private readonly HashSet<string> ids = new(StringComparer.Ordinal);
         private long size;
 
-        public Context(XferLimits limits, bool trusted)
+        public Context(XferLimits limits, bool trusted, TextWriter? sink)
         {
             this.limits = limits;
             this.trusted = trusted;
+            this.sink = sink;
+        }
+
+        /// <summary>Writes the head (if any), the value and the final line feed; returns the text unless a sink was given.</summary>
+        public string? WriteDocument(XferValue root, bool head)
+        {
+            // The head and the final line feed count towards the document size too.
+            if (head)
+            {
+                Put("<! xfer 1 !>\n");
+            }
+
+            WriteValue(root);
+            Put("\n");
+            if (sink is null)
+            {
+                return output.ToString();
+            }
+
+            sink.Write(output);
+            output.Clear();
+            return null;
         }
 
         /// <summary>
         /// Writes the value in the canonical layout: every member on its own line, four spaces in
         /// per level. Iterative, so depth cannot overflow the stack. The result has no final newline.
         /// </summary>
-        public string WriteValue(XferValue root)
+        private void WriteValue(XferValue root)
         {
             Annotations(root, 0);
             Emit(root, 0);
@@ -162,7 +193,6 @@ public static class XferWriter
                 }
             }
 
-            return output.ToString();
         }
 
         private static string Repeat(int level) => level == 0 ? string.Empty : string.Concat(System.Linq.Enumerable.Repeat(Indent, level));
@@ -179,6 +209,20 @@ public static class XferWriter
             {
                 throw new XferException(
                     [XferDiagnostics.Create(XferDiagnosticCode.XFER0601, XferPosition.Origin, null, $"the canonical form is longer than {limits.DocumentBytes} bytes")]);
+            }
+
+            if (sink is null)
+            {
+                if (size > MaxStringBytes)
+                {
+                    throw new XferException(
+                        [XferDiagnostics.Create(XferDiagnosticCode.XFER0601, XferPosition.Origin, null, $"the canonical form is longer than the {MaxStringBytes} bytes this library builds as one string; write it to a TextWriter")]);
+                }
+            }
+            else if (output.Length >= FlushAt)
+            {
+                sink.Write(output);
+                output.Clear();
             }
         }
 
@@ -235,18 +279,19 @@ public static class XferWriter
                 members = (XferSequence)value;
             }
 
+            // The output grows with the square of the depth, so the depth limit also bounds the
+            // output. An empty collection counts too: it is a level a parser at the limit would refuse.
+            if (stack.Count >= limits.Depth)
+            {
+                throw new XferException(
+                    [XferDiagnostics.Create(XferDiagnosticCode.XFER0602, XferPosition.Origin, null, $"the value is nested more than {limits.Depth} levels deep")]);
+            }
+
             if (members.Count == 0)
             {
                 Put(isObject ? "{}" : "[]");
                 FinishItem();
                 return;
-            }
-
-            // The output grows with the square of the depth, so the depth limit also bounds the output.
-            if (stack.Count >= limits.Depth)
-            {
-                throw new XferException(
-                    [XferDiagnostics.Create(XferDiagnosticCode.XFER0602, XferPosition.Origin, null, $"the value is nested more than {limits.Depth} levels deep")]);
             }
 
             Put(isObject ? "{" : "[", "\n");
@@ -266,14 +311,14 @@ public static class XferWriter
 
                     return StringDelimiters.Write(s.Value, limits.RunLength);
                 case XferInteger i:
-                    if (!trusted && !(IsLexeme(XferTokenKind.Integer, i.Lexeme) && Projection.ParseInteger(i.Lexeme) == i.Value))
+                    if (!trusted && !(IsLexeme(XferTokenKind.Integer, i.Lexeme, limits) && (i.ValueFollowsFromSpelling || Projection.ParseInteger(i.Lexeme) == i.Value)))
                     {
                         throw new ArgumentException($"{Quote(i.Lexeme)} is not the spelling of the integer {i.Value}");
                     }
 
                     return IntegerText(i.Lexeme);
                 case XferFractional f:
-                    if (!trusted && !IsLexeme(XferTokenKind.Fractional, f.Lexeme))
+                    if (!trusted && !IsLexeme(XferTokenKind.Fractional, f.Lexeme, limits))
                     {
                         throw new ArgumentException($"{Quote(f.Lexeme)} is not a fractional number");
                     }
@@ -291,7 +336,7 @@ public static class XferWriter
 
                     return s.Name;
                 case XferTemporal t:
-                    if (!trusted && !IsLexeme(TokenKindOf(t.TemporalKind), t.Lexeme))
+                    if (!trusted && !IsLexeme(TokenKindOf(t.TemporalKind), t.Lexeme, limits))
                     {
                         throw new ArgumentException($"{Quote(t.Lexeme)} is not a {t.TemporalKind}");
                     }
@@ -337,15 +382,23 @@ public static class XferWriter
         _ => XferTokenKind.DateTime,
     };
 
-    private static string Quote(string text) => Messages.JsQuote(text);
+    private static string Quote(string text) => Messages.JsQuote(Messages.Shorten(text));
 
     /// <summary>Whether text can be written bare, as a key or as a symbol (specification 4.3).</summary>
     private static bool IsBareName(string text)
     {
         bool first = true;
         int last = 0;
-        foreach (Rune rune in text.EnumerateRunes())
+        ReadOnlySpan<char> rest = text;
+        while (!rest.IsEmpty)
         {
+            // EnumerateRunes would turn a lone surrogate into U+FFFD, which is an identifier
+            // character; decoding by hand lets invalid UTF-16 be refused.
+            if (Rune.DecodeFromUtf16(rest, out Rune rune, out int consumed) != System.Buffers.OperationStatus.Done)
+            {
+                return false;
+            }
+
             int cp = rune.Value;
             if (first ? !Unicode.IsIdentifierStart(cp) : !Unicode.IsIdentifierContinue(cp))
             {
@@ -354,6 +407,7 @@ public static class XferWriter
 
             first = false;
             last = cp;
+            rest = rest[consumed..];
         }
 
         return !first && last != '.' && Lexer.KeywordOf(Encoding.UTF8.GetBytes(text)) == XferKeyword.None;
@@ -387,7 +441,7 @@ public static class XferWriter
     }
 
     /// <summary>Whether the lexeme is exactly one token of the kind, as the lexer would read it.</summary>
-    private static bool IsLexeme(XferTokenKind kind, string lexeme)
+    private static bool IsLexeme(XferTokenKind kind, string lexeme, XferLimits limits)
     {
         if (lexeme.Length == 0)
         {
@@ -405,7 +459,7 @@ public static class XferWriter
         }
 
         var pending = new List<PendingDiagnostic>();
-        TokenStream stream = Lexer.Tokenize(bytes, XferLimits.Default, pending);
+        TokenStream stream = Lexer.Tokenize(bytes, limits, pending);
         if (pending.Count > 0 || stream.Tokens.Count != 2)
         {
             return false;

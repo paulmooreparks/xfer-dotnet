@@ -385,6 +385,10 @@ public sealed class XferInteger : XferValue
 
     private bool HasValue => Volatile.Read(ref computed) is not null;
 
+    // True for an integer that came from a parse and has not been converted: its value is then
+    // fixed by its spelling, so a writer need not convert it to check that the two agree.
+    internal bool ValueFollowsFromSpelling => !HasValue;
+
     /// <inheritdoc/>
     public override XferValueKind Kind => XferValueKind.Integer;
 
