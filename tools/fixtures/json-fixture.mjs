@@ -72,7 +72,7 @@ const pick = (items) => items[Math.floor(random() * items.length)];
 
 // Random JSON values written by hand, so that numbers keep their spelling and strings carry escapes.
 const NUMBERS = ["0", "-0", "1", "-7", "42", "9007199254740992", "9007199254740993", "-9007199254740993", "123456789012345678901234567890", "1.5", "-0.25", "1e5", "1E-5", "2.5e+3", "1.0", "0e0", "10", "100000000000000000000.5"];
-const STRING_BODIES = ["", "a", "hello world", "say \\\"hi\\\"", "tab\\there", "nl\\nx", "back\\\\slash", "\\/", "\\u00e9\\u65e5", "\\ud83d\\ude00", "\\u0001", "\\u001f", "é日😀", " ", "\u007f", "x".repeat(30), "\\r", "\\ud800", "\\udc00", "a\\ud800b", "\\u000d", "\\u0000"];
+const STRING_BODIES = ["", "a", "hello world", "say \\\"hi\\\"", "tab\\there", "nl\\nx", "back\\\\slash", "\\/", "\\u00e9\\u65e5", "\\ud83d\\ude00", "\\u0001", "\\u001f", "é日😀", " ", "\u007f", "x".repeat(30), "\\r", "\\ud800", "\\udc00", "a\\ud800b", "\\u000d", "\\u0000", "\ud800", "\ude00", "\ud83d" + "x", "\u2028", "\u0085", "\u007f", "\u{10ffff}"];
 function genValue(depth) {
   const r = random();
   if (depth <= 0 || r < 0.4) {
@@ -126,7 +126,7 @@ for (let seed = 1; seed <= 700; seed++) {
   const r = mulberry32(seed * 7919);
   toCase(renderDocument(doc, randomSeparator(r), ""), `generated:${seed}`);
 }
-const PIECES = ["{", "}", "[", "]", "a", "b", "k", "1", "-5", "0xFF", "0o17", "0b101", "1_000", "9007199254740992", "9007199254740993", "-9007199254740993", "123456789012345678901234567890", "1.5", "1e5", "inf", "-inf", "nan", "true", "false", "null", '"s"', '"say ""hi"""', '"line\nbreak"', "sym", "2025-08-01", "09:30:00", "2025-08-01T09:30:00Z", "2025-08-01T09:30:00", "<! id \"a\" !>", "<! tag t !>", "</ c />", '"é日"', '"\t"', '"\\"'];
+const PIECES = ["{", "}", "[", "]", "a", "b", "k", "1", "-5", "0xFF", "0o17", "0b101", "1_000", "9007199254740992", "9007199254740993", "-9007199254740993", "123456789012345678901234567890", "1.5", "1e5", "inf", "-inf", "nan", "true", "false", "null", '"s"', '"say ""hi"""', '"line\nbreak"', "sym", "2025-08-01", "09:30:00", "2025-08-01T09:30:00Z", "2025-08-01T09:30:00", "<! id \"a\" !>", "<! tag t !>", "</ c />", '"é日"', '"\t"', '"\\"', '"a\u0001b"', '"\u001f"', '"\u007f"', '"\u2028"', '"\u0008\u000c"', '"\u{1F600}"'];
 for (let run = 0; run < 5000; run++) {
   let text = "";
   const n = 1 + Math.floor(random() * 8);

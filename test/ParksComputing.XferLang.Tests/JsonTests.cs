@@ -144,7 +144,7 @@ public class JsonTests
         {
             string text = XferJson.ToJson(XferDocument.ParseValue(xfer)).Value;
             using JsonDocument doc = JsonDocument.Parse(text);
-            Assert.NotEqual(JsonValueKind.Undefined, doc.RootElement.ValueKind);
+            Assert.Equal(XferJson.ToJson(XferDocument.ParseValue(xfer)).Value, doc.RootElement.GetRawText());
         }
     }
 
@@ -246,6 +246,7 @@ public class JsonTests
     {
         Assert.Throws<ArgumentNullException>(() => XferJson.ToJson(null!));
         Assert.Throws<ArgumentNullException>(() => XferJson.FromJson((string)null!));
+        Assert.Empty(default(XferJsonResult<string>).Diagnostics);
     }
 
     [Fact]
@@ -326,22 +327,42 @@ public class JsonTests
     public void ExactnessAgreesWithAnIndependentExpansionForRandomDoubles()
     {
         var random = new Random(5);
-        for (int i = 0; i < 2000; i++)
+        for (int i = 0; i < 4000; i++)
         {
-            double x = BitConverter.Int64BitsToDouble(random.NextInt64() & 0x7FEFFFFFFFFFFFFFL);
-            if (x == 0)
+            // Any finite nonzero double, either sign, any exponent including subnormals.
+            double x = BitConverter.Int64BitsToDouble(random.NextInt64());
+            if (!double.IsFinite(x) || x == 0)
             {
                 continue;
             }
 
-            // The exact decimal expansion of a double is exact, and a one-digit perturbation is not.
-            BigInteger m = new(Math.Abs(x) * Math.Pow(2, 0)); // placeholder to keep the type used
             string exactText = ExactDecimal(x);
             Assert.Equal(x, new XferFractional(exactText).ToDouble(out bool exact));
             Assert.True(exact, exactText);
-            Assert.False(new XferFractional(exactText + "1").ToDouble(out exact) != x && exact);
-            GC.KeepAlive(m);
+
+            // One more significant digit makes the number differ from x by far less than half a
+            // ulp, so it still rounds to x, and is not exact.
+            (string digits, string exponent) = SplitExponent(exactText);
+            string perturbed = digits + "1" + exponent.Replace("e", "e", StringComparison.Ordinal);
+            string shifted = ShiftExponent(perturbed, digits.Length + 1);
+            Assert.Equal(x, new XferFractional(shifted).ToDouble(out exact));
+            Assert.False(exact, shifted);
         }
+    }
+
+    private static (string Digits, string Exponent) SplitExponent(string text)
+    {
+        int e = text.IndexOf('e', StringComparison.Ordinal);
+        return e < 0 ? (text, string.Empty) : (text[..e], text[e..]);
+    }
+
+    // digits + "1" followed by the original exponent, lowered by one so the extra digit is the
+    // last decimal place: 1.5e3 style spellings are avoided, digits are plain integers here.
+    private static string ShiftExponent(string digitsAndExponent, int _)
+    {
+        (string digits, string exponent) = SplitExponent(digitsAndExponent);
+        long e = exponent.Length == 0 ? 0 : long.Parse(exponent.AsSpan(1), System.Globalization.CultureInfo.InvariantCulture);
+        return digits + "e" + (e - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static string ExactDecimal(double x)
@@ -436,5 +457,95 @@ public class JsonTests
                 Assert.Equal(dto.UtcDateTime, dt);
             }
         }
+    }
+
+    [Fact]
+    public void IntegerToDoubleRoundsToNearestWithTiesToEvenLikeDoubleParse()
+    {
+        var random = new Random(9);
+        for (int i = 0; i < 20_000; i++)
+        {
+            int bits = random.Next(1, 400);
+            var bytes = new byte[(bits / 8) + 2];
+            random.NextBytes(bytes);
+            bytes[^1] &= 0x7F;
+            BigInteger v = new BigInteger(bytes) >> random.Next(0, 8);
+            if (random.Next(2) == 0)
+            {
+                v = -v;
+            }
+
+            double got = new XferInteger(v, v.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToDouble(out _);
+            double want = double.Parse(v.ToString(System.Globalization.CultureInfo.InvariantCulture), System.Globalization.CultureInfo.InvariantCulture);
+            Assert.True(got.Equals(want), $"{v}: {got:R} vs {want:R}");
+        }
+
+        // Exact ties: 2^53 + 1 rounds to even (down), 2^53 + 3 rounds up.
+        Assert.Equal(9007199254740992.0, new XferInteger(9007199254740993, "9007199254740993").ToDouble(out _));
+        Assert.Equal(9007199254740996.0, new XferInteger(9007199254740995, "9007199254740995").ToDouble(out _));
+        BigInteger big = (BigInteger.One << 100) + (BigInteger.One << 47) + 1;
+        Assert.Equal(Math.Pow(2, 100) + Math.Pow(2, 48), new XferInteger(big, big.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToDouble(out bool exact));
+        Assert.False(exact);
+        Assert.True(double.IsPositiveInfinity(new XferInteger(BigInteger.One << 1100, "x").ToDouble(out _)));
+        Assert.True(double.IsNegativeInfinity(new XferInteger(-(BigInteger.One << 2000), "x").ToDouble(out _)));
+        Assert.Equal(double.MaxValue, new XferInteger(new BigInteger(double.MaxValue), "x").ToDouble(out exact));
+        Assert.True(exact);
+    }
+
+    [Fact]
+    public void FractionalHelpersRefuseASpellingThatIsNotANumberWithoutThrowing()
+    {
+        foreach (string bad in new[] { "abc", string.Empty, "1.5x", "1e", "0x10", "0e", ".5", "1.", "e5", "+", "-", "1e+", " 1.5", "1.5 " })
+        {
+            var f = new XferFractional(bad);
+            Assert.True(double.IsNaN(f.ToDouble(out bool exact)), bad);
+            Assert.False(exact, bad);
+            Assert.False(f.TryGetDecimal(out _), bad);
+            Assert.False(f.TryGetDecimalParts(out _, out _), bad);
+        }
+    }
+
+    [Fact]
+    public void HelpersOnHugeSpellingsDoNotConvertThemInFull()
+    {
+        string digits = new('7', 3_000_000);
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        var integer = (XferInteger)XferDocument.ParseValue(digits);
+        Assert.False(integer.TryGetInt64(out _));
+        Assert.False(integer.TryGet(out UInt128 _));
+        Assert.False(integer.TryGetDecimal(out _));
+        var fractional = (XferFractional)XferDocument.ParseValue("1." + new string('0', 3_000_000) + "1");
+        Assert.Equal(1.0, fractional.ToDouble(out bool exact));
+        Assert.False(exact);
+        Assert.False(fractional.TryGetDecimal(out _));
+        var zeros = (XferFractional)XferDocument.ParseValue("1" + new string('0', 1_000_000) + "e-1000029");
+        Assert.False(zeros.TryGetDecimal(out _)); // 1e-29 needs 29 places
+        var fits = (XferFractional)XferDocument.ParseValue("1" + new string('0', 1_000_000) + "e-1000000");
+        Assert.True(fits.TryGetDecimal(out decimal one));
+        Assert.Equal(1m, one);
+        timer.Stop();
+        Assert.True(timer.ElapsedMilliseconds < 3_000, $"{timer.ElapsedMilliseconds} ms");
+    }
+
+    [Fact]
+    public void DecimalConversionKeepsTheScaleAndTheBoundaryValues()
+    {
+        Assert.True(new XferFractional("79228162514264337593543950335.0").TryGetDecimal(out decimal d));
+        Assert.Equal(decimal.MaxValue, d);
+        Assert.True(new XferFractional("-79228162514264337593543950335.0").TryGetDecimal(out d));
+        Assert.Equal(decimal.MinValue, d);
+        Assert.False(new XferFractional("79228162514264337593543950336").TryGetDecimal(out _));
+        Assert.True(new XferFractional("0.00").TryGetDecimal(out d));
+        Assert.Equal("0.00", d.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        Assert.True(new XferFractional("-0.0").TryGetDecimal(out d));
+        Assert.Equal("0.0", d.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        Assert.True(new XferFractional("1.50").TryGetDecimal(out d));
+        Assert.Equal("1.50", d.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        Assert.True(new XferFractional("1.5e1").TryGetDecimal(out d));
+        Assert.Equal(15m, d);
+        Assert.True(new XferFractional("12.3400000000000000000000000000").TryGetDecimal(out d)); // 28 places, trailing zeros kept
+        Assert.Equal(12.34m, d);
+        Assert.True(new XferFractional("1.5000000000000000000000000000000").TryGetDecimal(out d)); // 31 places: only zeros past 28
+        Assert.Equal(1.5m, d);
     }
 }

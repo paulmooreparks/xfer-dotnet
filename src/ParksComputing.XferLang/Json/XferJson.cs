@@ -7,9 +7,47 @@ namespace ParksComputing.XferLang;
 
 /// <summary>What a conversion produced and what it noticed along the way.</summary>
 /// <typeparam name="T">The kind of result.</typeparam>
-/// <param name="Value">The converted result. For <see cref="XferJson.FromJson(string, XferFromJsonOptions?)"/>, null when there is an error.</param>
-/// <param name="Diagnostics">Every diagnostic, in order of position. Check the severities: a conversion can succeed with warnings and notes.</param>
-public readonly record struct XferJsonResult<T>(T Value, IReadOnlyList<XferDiagnostic> Diagnostics);
+public readonly struct XferJsonResult<T> : IEquatable<XferJsonResult<T>>
+{
+    private readonly IReadOnlyList<XferDiagnostic>? diagnostics;
+
+    /// <summary>Creates a result.</summary>
+    /// <param name="value">The converted result. For <see cref="XferJson.FromJson(string, XferFromJsonOptions?)"/>, null when there is an error.</param>
+    /// <param name="diagnostics">Every diagnostic, in order of position.</param>
+    public XferJsonResult(T value, IReadOnlyList<XferDiagnostic> diagnostics)
+    {
+        Value = value;
+        this.diagnostics = diagnostics;
+    }
+
+    /// <summary>The converted result. For <see cref="XferJson.FromJson(string, XferFromJsonOptions?)"/>, null when there is an error.</summary>
+    public T Value { get; }
+
+    /// <summary>Every diagnostic, in order of position. Check the severities: a conversion can succeed with warnings and notes. Empty, never null, even for a default result.</summary>
+    public IReadOnlyList<XferDiagnostic> Diagnostics => diagnostics ?? Array.Empty<XferDiagnostic>();
+
+    /// <summary>Splits the result into its value and its diagnostics.</summary>
+    public void Deconstruct(out T value, out IReadOnlyList<XferDiagnostic> diagnostics)
+    {
+        value = Value;
+        diagnostics = Diagnostics;
+    }
+
+    /// <inheritdoc/>
+    public bool Equals(XferJsonResult<T> other) => EqualityComparer<T>.Default.Equals(Value, other.Value) && ReferenceEquals(Diagnostics, other.Diagnostics);
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is XferJsonResult<T> other && Equals(other);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => HashCode.Combine(Value, Diagnostics);
+
+    /// <summary>Whether two results have the same value and the same list of diagnostics.</summary>
+    public static bool operator ==(XferJsonResult<T> left, XferJsonResult<T> right) => left.Equals(right);
+
+    /// <summary>Whether two results differ.</summary>
+    public static bool operator !=(XferJsonResult<T> left, XferJsonResult<T> right) => !left.Equals(right);
+}
 
 /// <summary>Options for <see cref="XferJson.ToJson"/>.</summary>
 public sealed record XferToJsonOptions
