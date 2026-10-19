@@ -308,12 +308,13 @@ Deserialization is two steps: parse to an `XferValue` with the core, then map th
 ```csharp
 public sealed class XferSerializerOptions
 {
-    public XferNamingPolicy? PropertyNamingPolicy { get; init; }   // null: the CLR name as declared
-    public bool PropertyNameCaseInsensitive { get; init; }         // false
-    public XferUnmappedMemberHandling UnmappedMemberHandling { get; init; }   // Skip (default) or Disallow
-    public XferIgnoreCondition DefaultIgnoreCondition { get; init; }          // Never (default) or WhenWritingNull or WhenWritingDefault
-    public XferLimits Limits { get; init; } = XferLimits.Default;
-    public IList<XferConverter> Converters { get; }
+    // Settable until the options are first used, then frozen (setting one throws), as in System.Text.Json.
+    public XferNamingPolicy? PropertyNamingPolicy { get; set; }   // null: the CLR name as declared
+    public bool PropertyNameCaseInsensitive { get; set; }         // false
+    public XferUnmappedMemberHandling UnmappedMemberHandling { get; set; }   // Skip (default) or Disallow
+    public XferIgnoreCondition DefaultIgnoreCondition { get; set; }          // Never (default) or WhenWritingNull or WhenWritingDefault
+    public XferLimits Limits { get; set; } = XferLimits.Default;
+    public IList<XferConverter> Converters { get; }               // refuses changes once frozen
 }
 [XferPropertyName("slug")]   [XferPropertyName("url", Aliases = new[] { "link" })]   [XferIgnore]   [XferRequired]   [XferConstructor]   [XferConverter(typeof(...))]   [XferSymbol]
 public abstract class XferNamingPolicy        // as JsonNamingPolicy
@@ -325,7 +326,7 @@ public abstract class XferNamingPolicy        // as JsonNamingPolicy
 }
 ```
 
-Attribute and option names follow `System.Text.Json` where the meaning is the same. C# `required` members and `[XferRequired]` both make a missing member an error. A type with a single public constructor whose parameters match members by name (records included) is constructed through it; `[XferConstructor]` chooses among several.
+Attribute and option names follow `System.Text.Json` where the meaning is the same. C# `required` members and `[XferRequired]` both make a missing member an error, and so does a constructor parameter without a default value (`System.Text.Json` passes `default(T)` there unless `RespectRequiredConstructorParameters` is set, which this library has no compatibility reason to copy). A type with a single public constructor whose parameters match members by name, ignoring case (records included), is constructed through it, and that includes a struct whose only declared constructor has parameters; `[XferConstructor]` chooses among several. A type that cannot be constructed (abstract, an interface, several constructors and none marked, a parameter that matches no member) is an `InvalidOperationException` when an object is read into it, since the fault is in the program and not the document; the same type can still be written, and read from `null`.
 
 **Members.** A member is a public instance property with a public getter, or a public instance field. A property with a public getter and no setter (and no matching constructor parameter) is written but not read, and a key for it is treated as an unmapped key. A setter-only property is not a member. `[XferIgnore]` removes a member in both directions; `[XferPropertyName]` and the naming policy give its key, in that order of precedence. `Aliases` on `[XferPropertyName]` are further keys accepted on reading and never written; an object holding both the key and an alias, or two aliases, for one member is an error at the second, as for two case-insensitive matches. Two members of one type with the same key are an `InvalidOperationException` when the type's metadata is built, before any data is read, as in `System.Text.Json`.
 
@@ -356,9 +357,9 @@ The codes are the specification's object-mapper codes (section 9 and 10): `XFER0
 | `DateTimeOffset` | datetime | The offset is kept. |
 | `TimeSpan`, `Guid`, `Uri`, `Version` | string | Parsed with the type's invariant-culture `Parse`. |
 | `T?` | `null` or what `T` accepts | |
-| arrays, `List<T>`, `IEnumerable<T>`, `IReadOnlyList<T>`, `ICollection<T>`, `HashSet<T>`, `ImmutableArray<T>` | sequence | |
-| `Dictionary<string, T>`, `IDictionary<string, T>`, `IReadOnlyDictionary<string, T>` | object | Key order is kept where the target keeps order. |
-| `object` | anything | object to `Dictionary<string, object?>` (ordered), sequence to `List<object?>`, string and symbol to `string`, integer to `long` when it fits else `BigInteger`, fractional to `double`, temporal to `DateOnly`, `TimeOnly`, `DateTime` or `DateTimeOffset`, bool, null. |
+| arrays, `List<T>`, `IEnumerable<T>`, `IReadOnlyList<T>`, `ICollection<T>`, `HashSet<T>`, `ImmutableArray<T>`, and any concrete `ICollection<T>` with a public parameterless constructor (filled through `Add`) | sequence | A set keeps one of each repeated item, as `Add` does. Any other enumerable type (`Queue<T>`, `ImmutableList<T>`, `ReadOnlyCollection<T>`, a multidimensional array) is an `InvalidOperationException` when a value other than `null` is read into it, never an empty collection. |
+| `Dictionary<string, T>`, `IDictionary<string, T>`, `IReadOnlyDictionary<string, T>`, and any concrete `IDictionary` with string keys and a public parameterless constructor | object | Key order is kept where the target keeps order. A dictionary with keys that are not strings is an `InvalidOperationException`. |
+| `object` | anything | object to `Dictionary<string, object?>` (ordered), sequence to `List<object?>`, string and symbol to `string`, integer to `long` when it fits else `BigInteger`, fractional to `double` (or, when the double would be infinite or zero for a finite non-zero value such as `1e400` or `1e-400`, the parsed `XferFractional` itself), temporal to `DateOnly`, `TimeOnly`, `DateTime` or `DateTimeOffset` (or, for a value none of them can hold, such as a leap second or the year 0000, the parsed `XferTemporal` itself, which is exact and is written back unchanged), bool, null. |
 | `XferValue` and subclasses | anything of that kind | The value as parsed, annotations included. |
 | class, struct, record | object | Members by name; unknown keys skipped unless `Disallow`. |
 
@@ -382,8 +383,9 @@ Annotations are ignored by the mapper except through `XferValue`-typed members. 
 | `DateTime` | Utc: datetime with `Z`. Local: converted to UTC and written with `Z`, so that the bytes do not depend on the host's time zone. Unspecified: local-datetime, even at midnight; a member that holds a date should be `DateOnly` to round-trip as a date. |
 | `DateTimeOffset` | datetime with its offset (`Z` when the offset is zero) |
 | `TimeSpan`, `Guid`, `Uri`, `Version` | string, invariant culture |
-| collections | sequence |
-| dictionaries with string keys | object, in the dictionary's enumeration order |
+| any enumerable, judged by the value's runtime type (a lazy `IEnumerable<T>`, a `Queue<T>`, a subclass of `List<T>`) | sequence; a multidimensional array is an `InvalidOperationException` |
+| dictionaries with string keys, judged the same way | object, in the dictionary's enumeration order; other keys are an `InvalidOperationException` |
+| a converter's result | that value; `null` is an `InvalidOperationException` (a converter returns `XferNull` for null) |
 | `null` | `null` (or omitted, under `DefaultIgnoreCondition`) |
 | `XferValue` | the value itself, annotations included (validated as specification 9 requires) |
 | objects, anonymous types included | object, members in declaration order, base class members first |
@@ -394,7 +396,11 @@ The `xfer` head is never written by the mapper.
 
 ### 10.5 Reference cycles
 
-A cycle on write is detected with a depth check (the depth limit) and reported as `XFER0602`; there is no reference preservation. Specification 9 does not allow references and the format has no way to express them.
+A cycle on write is detected exactly, by a set of the containers being written (by reference), and reported as `XFER0602`; the depth limit is checked too. There is no reference preservation. Specification 9 does not allow references and the format has no way to express them.
+
+A graph that shares references without a cycle maps to a tree that can be exponentially larger than the graph. The mapper therefore counts while it builds: every value against `Limits.Elements` (`XFER0605`), and a lower bound on the bytes of the canonical output against `Limits.DocumentBytes` (`XFER0601`). The bound is one newline and four spaces of indentation per level for each element, plus each key and each string's length, which canonical form cannot write in fewer bytes. The tree in memory is a small multiple of that bound, so a program writing untrusted graphs should lower the limits.
+
+`Serialize(object, Type)` and `SerializeAsync(Stream, object, Type)` throw `ArgumentException` when the value is not of the type, as `System.Text.Json` does. `SerializeAsync` writes the canonical text into memory in 64 KB chunks and then writes the chunks to the stream asynchronously, so it never writes synchronously to a stream that forbids it (an ASP.NET Core response).
 
 ### 10.6 Converters
 
@@ -501,7 +507,9 @@ This step changes another repository and needs Paul's go-ahead when it is reache
 2. **The position of an invalid-UTF-8 diagnostic.** Settled 2026-10-19 (xferlang dffcd6b): SHOULD be at the first invalid byte, MAY be at the origin where the platform cannot locate it. This implementation reports the real position (section 5).
 3. **Codes for mapping errors.** Settled 2026-10-19 (xferlang dffcd6b): `XFER0801` to `XFER0804` in specification 9 and 10 (section 10.2 and 10.3).
 
-There are no open questions. New ones go here as they arise.
+4. **Member write order rests on undocumented behaviour.** Open, raised 2026-10-20. Section 10.4 says members are written in declaration order. Reflection does not promise that: `Type.GetProperties` and `GetFields` are documented as returning members in no particular order, and `MetadataToken` order is what compilers happen to emit, not a contract. `System.Text.Json` relies on it anyway. Today the mapper sorts by `[XferPropertyOrder]`, then base class first, then the order reflection gives, so output bytes for a type without explicit orders depend on undocumented behaviour. The documented alternative is to sort members of equal order by key, ordinally: deterministic on every runtime, at the cost of output that no longer follows the class as written (`{age 36 name "Ada"}`), and anonymous types would sort too. A middle course keeps reflection order but makes canonical byte stability a promise only for types whose members all have an order. Recommendation: sort by key; the engine's documents are written by hand, not by the mapper, so it loses nothing there.
+
+New questions go here as they arise.
 
 ## 17. Decisions recorded
 
@@ -611,3 +619,30 @@ Review of step 7 (Opus, cold): the reader and writer matched xfer-js on every ho
 - **`ToDouble` threw `FormatException` on a hand-built spelling that is not a number.** A spelling that is not a number in the grammar of 4.5 now gives NaN with `exact` false (documented), and the other helpers return false.
 - **The exactness test checked nothing** (its perturbation was never equal to the double, the sign bit and half the exponents were masked out, and a variable was dead). It now tests any finite nonzero double of either sign, including subnormals, with a one-digit perturbation that must still round to the same double and must not be exact.
 - **Smaller:** `XferJsonResult<T>` is now a struct whose `Diagnostics` is never null, even for `default`; two weak assertions were strengthened; the fixture now has raw (unescaped) lone surrogates, U+2028, U+0085 and U+007F in JSON strings, and control characters in XferLang strings for `toJson`; section 8 is corrected. `TryGetDecimalParts` returns false for a number whose exponent does not fit an `int` (xfer-js returns a value there), which the doc comment now says.
+
+### Step 8: the object mapper
+
+Done 2026-10-20 (Opus). `Serialization/` holds the options and attributes, the type resolver (`TypeInfo.cs`, all reflection in one file as section 10.8 requires), the scalar conversions of tables 10.3 and 10.4 (`Scalars.cs`), the mapper (`Mapper.cs`) and `XferSerializer`. 464 tests, 94 of them the mapper's.
+
+- **Reading and writing are iterative,** each with an explicit stack of frames, so a document as deep as the limits allow is mapped without recursion (a test reads and writes 5,000 levels). On writing, the depth limit also catches a reference cycle (section 10.5).
+- **Positions come from a side table.** `Projection.ToValue` fills a `SourceMap` (value to offset, and object to key offsets) only when the mapper asks, through the internal `XferDocument.ParseForMapping`; a plain parse pays nothing. A mapping error's message ends with the JSON Pointer, `(at /a/0)`, or `(at the root)`.
+- **Options are settable until first use, then frozen,** as `System.Text.Json` does, instead of the `init` properties section 10.2 first showed: a caller can build options in steps, and the cache keyed on the instance stays sound.
+- **A constructor parameter without a default is required** (section 10.2 now says so). A type that cannot be constructed is an `InvalidOperationException` when an object is read into it, not a diagnostic.
+- **`object` targets:** an integer is `long` when it fits (a `?:` between `long` and `BigInteger` had made every integer a `BigInteger`; a test now checks the type). A temporal no .NET type can hold stays an `XferTemporal`, because the suite's leap-second document would otherwise be refused.
+- **Enums** read by name through the naming policy, by integer, and for `[Flags]` by a sequence of names; the signed underlying types are handled through one widening helper.
+- **Member order is an open question** (section 16, item 4): beyond `[XferPropertyOrder]` it is the order reflection gives, which no documentation promises.
+- **The parkscomputing.com documents** are in `test/fixtures/` as they are (`*.legacy.xfer`, from `C:\Users\paul\OneDrive\Documents\parkscomputing.com`) and converted by `tools/fixtures/convert-legacy.mjs`, which knows the four 0.x constructs they use (the head, `~true`, `~false`, the `<"..">` and `<'..'>` wrappers) and refuses anything else. A test reads the converted copies into a copy of the engine's `NavNode` with this library, reads the originals with `ParksComputing.Xfer.Lang` 0.15.25-prerelease (a test-only reference), and requires the two object graphs to serialize to the same `System.Text.Json` text. The new `NavNode` uses `Aliases` for the legacy `link` and `links` keys in place of the two shadow properties, which become `[XferIgnore]`.
+- **The suite through `object`:** every valid document is read and written twice and the two outputs must be identical; `ToJson` of the input and of the first output must agree apart from number spelling (compared as doubles) and trailing zeros of a time's fraction.
+
+Review of step 8 (Opus, cold): the type cache and option freezing held under concurrent first use, and positions and pointers were right for every mapping error. Ten findings, all applied, with a regression test each (476 tests):
+
+- **Collections outside the hard-coded list lost their data.** A `ReadOnlyCollection<int>` was written as `{Count 2}` and a lazy `IEnumerable<int>` as `{Current 0}`, and `{a 1}` read into a subclass of `Dictionary` gave an empty dictionary. Writing now goes by what the value is at run time (any string-keyed dictionary is an object, any other enumerable a sequence). Reading fills any concrete `ICollection<T>` or string-keyed `IDictionary` with a parameterless constructor and refuses every other enumerable type with `InvalidOperationException`.
+- **A struct with only a parameterized constructor came back zeroed.** Such a struct is now built through that constructor.
+- **A long integer read into `double` took seconds** (19.6 s for a million digits). A parsed decimal integer is now parsed from its spelling, and a radix spelling of more than 1,100 bits is refused from its length.
+- **`SerializeAsync` wrote synchronously,** which an ASP.NET Core response refuses. It now writes chunks asynchronously. `DeserializeAsync` also parsed the document twice, and now parses it once.
+- **A converter that returned null** dropped the member, or crashed at the root. It is now an `InvalidOperationException`.
+- **`object` turned `1e400` into infinity and `1e-400` into zero.** Such a value now stays an `XferFractional`.
+- **Flags combinations were written as integers** when a member was negative (sign extension) or was itself a combination. Bits are now taken at the underlying type's width, and a value is covered by defined members with the most bits first.
+- **A graph that shares references ran without bound.** A 40-level diamond was still running after 20 s in review, and reached 76 GB in this session's first fix, because `Limits.Elements` defaults to unlimited. The fix is the output-size bound of section 10.5, and cycles are now detected exactly.
+- **A Local `DateTime` near the range edge was clamped** to the wrong instant by `ToUniversalTime`. It is converted through `DateTimeOffset` now, which throws there instead.
+- **`Serialize(object, Type)` ignored the type.** It now checks it. Two weak test assertions were also strengthened.

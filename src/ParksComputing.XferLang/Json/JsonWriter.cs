@@ -222,7 +222,7 @@ internal static class JsonWriter
     /// The decimal digits of an integer lexeme written in decimal (with a leading minus when
     /// negative, and negative zero as 0), or null for another radix.
     /// </summary>
-    private static string? DecimalDigits(string lexeme)
+    internal static string? DecimalDigits(string lexeme)
     {
         bool negative = lexeme.StartsWith('-');
         ReadOnlySpan<char> body = negative ? lexeme.AsSpan(1) : lexeme.AsSpan();
