@@ -145,10 +145,4 @@ public class HarnessTests
         Assert.Throws<System.Text.DecoderFallbackException>(() => Lossless.Normalize([0xFF]));
     }
 
-    [Fact]
-    public void TheSubjectIsNotImplementedYet()
-    {
-        // Documents the state at the end of step 2. Deleted when the parser lands in step 5.
-        Assert.Throws<NotImplementedException>(() => Subject.Parse([]));
-    }
 }

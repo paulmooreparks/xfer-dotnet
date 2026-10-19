@@ -8,6 +8,10 @@
     <IsAotCompatible>true</IsAotCompatible>
     <EnablePackageValidation>true</EnablePackageValidation>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CA1720: the kinds of an XferLang value really are called String, Integer and so on. -->
+    <!-- CA1710: XferObject is a dictionary but is named for what it is in the language. RS0026: the
+         entry points take the input in several types and options last, as System.Text.Json does. -->
+    <NoWarn>$(NoWarn);CA1720;CA1710;RS0026</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

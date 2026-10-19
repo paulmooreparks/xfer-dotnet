@@ -1,4 +1,115 @@
 #nullable enable
+ParksComputing.XferLang.Syntax.XferAnnotationNode
+ParksComputing.XferLang.Syntax.XferAnnotationNode.Close.get -> ParksComputing.XferLang.Syntax.XferToken?
+ParksComputing.XferLang.Syntax.XferAnnotationNode.Name.get -> ParksComputing.XferLang.Syntax.XferToken?
+ParksComputing.XferLang.Syntax.XferAnnotationNode.Open.get -> ParksComputing.XferLang.Syntax.XferToken
+ParksComputing.XferLang.Syntax.XferAnnotationNode.Value.get -> ParksComputing.XferLang.Syntax.XferNode?
+ParksComputing.XferLang.Syntax.XferErrorNode
+ParksComputing.XferLang.Syntax.XferErrorNode.Tokens.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.Syntax.XferToken>!
+ParksComputing.XferLang.Syntax.XferKeyword
+ParksComputing.XferLang.Syntax.XferKeyword.False = 2 -> ParksComputing.XferLang.Syntax.XferKeyword
+ParksComputing.XferLang.Syntax.XferKeyword.Inf = 4 -> ParksComputing.XferLang.Syntax.XferKeyword
+ParksComputing.XferLang.Syntax.XferKeyword.MinusInf = 5 -> ParksComputing.XferLang.Syntax.XferKeyword
+ParksComputing.XferLang.Syntax.XferKeyword.Nan = 6 -> ParksComputing.XferLang.Syntax.XferKeyword
+ParksComputing.XferLang.Syntax.XferKeyword.None = 0 -> ParksComputing.XferLang.Syntax.XferKeyword
+ParksComputing.XferLang.Syntax.XferKeyword.Null = 3 -> ParksComputing.XferLang.Syntax.XferKeyword
+ParksComputing.XferLang.Syntax.XferKeyword.True = 1 -> ParksComputing.XferLang.Syntax.XferKeyword
+ParksComputing.XferLang.Syntax.XferNode
+ParksComputing.XferLang.Syntax.XferNode.Annotations.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.Syntax.XferAnnotationNode!>!
+ParksComputing.XferLang.Syntax.XferNodeKind
+ParksComputing.XferLang.Syntax.XferNodeKind.Error = 3 -> ParksComputing.XferLang.Syntax.XferNodeKind
+ParksComputing.XferLang.Syntax.XferNodeKind.Object = 0 -> ParksComputing.XferLang.Syntax.XferNodeKind
+ParksComputing.XferLang.Syntax.XferNodeKind.Scalar = 2 -> ParksComputing.XferLang.Syntax.XferNodeKind
+ParksComputing.XferLang.Syntax.XferNodeKind.Sequence = 1 -> ParksComputing.XferLang.Syntax.XferNodeKind
+ParksComputing.XferLang.Syntax.XferObjectNode
+ParksComputing.XferLang.Syntax.XferObjectNode.Close.get -> ParksComputing.XferLang.Syntax.XferToken?
+ParksComputing.XferLang.Syntax.XferObjectNode.Open.get -> ParksComputing.XferLang.Syntax.XferToken
+ParksComputing.XferLang.Syntax.XferObjectNode.Pairs.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.Syntax.XferPairNode!>!
+ParksComputing.XferLang.Syntax.XferPairNode
+ParksComputing.XferLang.Syntax.XferPairNode.Annotations.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.Syntax.XferAnnotationNode!>!
+ParksComputing.XferLang.Syntax.XferPairNode.Key.get -> ParksComputing.XferLang.Syntax.XferToken?
+ParksComputing.XferLang.Syntax.XferPairNode.Skipped.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.Syntax.XferSkippedSyntax>!
+ParksComputing.XferLang.Syntax.XferPairNode.Value.get -> ParksComputing.XferLang.Syntax.XferNode?
+ParksComputing.XferLang.Syntax.XferScalarNode
+ParksComputing.XferLang.Syntax.XferScalarNode.Token.get -> ParksComputing.XferLang.Syntax.XferToken
+ParksComputing.XferLang.Syntax.XferSequenceNode
+ParksComputing.XferLang.Syntax.XferSequenceNode.Close.get -> ParksComputing.XferLang.Syntax.XferToken?
+ParksComputing.XferLang.Syntax.XferSequenceNode.Items.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.Syntax.XferNode!>!
+ParksComputing.XferLang.Syntax.XferSequenceNode.Open.get -> ParksComputing.XferLang.Syntax.XferToken
+ParksComputing.XferLang.Syntax.XferSkippedSyntax
+ParksComputing.XferLang.Syntax.XferSkippedSyntax.Annotation.get -> ParksComputing.XferLang.Syntax.XferAnnotationNode?
+ParksComputing.XferLang.Syntax.XferSkippedSyntax.Equals(ParksComputing.XferLang.Syntax.XferSkippedSyntax other) -> bool
+ParksComputing.XferLang.Syntax.XferSkippedSyntax.Token.get -> ParksComputing.XferLang.Syntax.XferToken?
+ParksComputing.XferLang.Syntax.XferSkippedSyntax.XferSkippedSyntax() -> void
+ParksComputing.XferLang.Syntax.XferStringForm
+ParksComputing.XferLang.Syntax.XferStringForm.Hash = 2 -> ParksComputing.XferLang.Syntax.XferStringForm
+ParksComputing.XferLang.Syntax.XferStringForm.None = 0 -> ParksComputing.XferLang.Syntax.XferStringForm
+ParksComputing.XferLang.Syntax.XferStringForm.Repetition = 1 -> ParksComputing.XferLang.Syntax.XferStringForm
+ParksComputing.XferLang.Syntax.XferSyntaxTree
+ParksComputing.XferLang.Syntax.XferSyntaxTree.EndOfFile.get -> ParksComputing.XferLang.Syntax.XferToken
+ParksComputing.XferLang.Syntax.XferSyntaxTree.GetPosition(int utf8Offset) -> ParksComputing.XferLang.XferPosition
+ParksComputing.XferLang.Syntax.XferSyntaxTree.Head.get -> ParksComputing.XferLang.Syntax.XferAnnotationNode?
+ParksComputing.XferLang.Syntax.XferSyntaxTree.Root.get -> ParksComputing.XferLang.Syntax.XferNode?
+ParksComputing.XferLang.Syntax.XferSyntaxTree.Text.get -> string!
+ParksComputing.XferLang.Syntax.XferSyntaxTree.Tokens.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.Syntax.XferToken>!
+ParksComputing.XferLang.Syntax.XferSyntaxTree.Trailing.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.Syntax.XferToken>!
+ParksComputing.XferLang.Syntax.XferToken
+ParksComputing.XferLang.Syntax.XferToken.Content.get -> string?
+ParksComputing.XferLang.Syntax.XferToken.End.get -> ParksComputing.XferLang.XferPosition
+ParksComputing.XferLang.Syntax.XferToken.Equals(ParksComputing.XferLang.Syntax.XferToken other) -> bool
+ParksComputing.XferLang.Syntax.XferToken.Form.get -> ParksComputing.XferLang.Syntax.XferStringForm
+ParksComputing.XferLang.Syntax.XferToken.Keyword.get -> ParksComputing.XferLang.Syntax.XferKeyword
+ParksComputing.XferLang.Syntax.XferToken.Kind.get -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferToken.LeadingTrivia.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.Syntax.XferTrivia>!
+ParksComputing.XferLang.Syntax.XferToken.Length.get -> int
+ParksComputing.XferLang.Syntax.XferToken.Offset.get -> int
+ParksComputing.XferLang.Syntax.XferToken.Run.get -> int
+ParksComputing.XferLang.Syntax.XferToken.Start.get -> ParksComputing.XferLang.XferPosition
+ParksComputing.XferLang.Syntax.XferToken.Text.get -> string!
+ParksComputing.XferLang.Syntax.XferToken.XferToken() -> void
+ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.AnnotationClose = 5 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.AnnotationOpen = 4 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.Date = 9 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.DateTime = 12 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.EndOfFile = 16 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.Error = 15 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.Fractional = 8 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.Identifier = 14 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.Integer = 7 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.Keyword = 13 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.LeftBrace = 0 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.LeftBracket = 2 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.LocalDateTime = 11 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.RightBrace = 1 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.RightBracket = 3 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.String = 6 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTokenKind.Time = 10 -> ParksComputing.XferLang.Syntax.XferTokenKind
+ParksComputing.XferLang.Syntax.XferTrivia
+ParksComputing.XferLang.Syntax.XferTrivia.End.get -> ParksComputing.XferLang.XferPosition
+ParksComputing.XferLang.Syntax.XferTrivia.Equals(ParksComputing.XferLang.Syntax.XferTrivia other) -> bool
+ParksComputing.XferLang.Syntax.XferTrivia.Kind.get -> ParksComputing.XferLang.Syntax.XferTriviaKind
+ParksComputing.XferLang.Syntax.XferTrivia.Length.get -> int
+ParksComputing.XferLang.Syntax.XferTrivia.Offset.get -> int
+ParksComputing.XferLang.Syntax.XferTrivia.Run.get -> int
+ParksComputing.XferLang.Syntax.XferTrivia.Start.get -> ParksComputing.XferLang.XferPosition
+ParksComputing.XferLang.Syntax.XferTrivia.Text.get -> string!
+ParksComputing.XferLang.Syntax.XferTrivia.XferTrivia() -> void
+ParksComputing.XferLang.Syntax.XferTriviaKind
+ParksComputing.XferLang.Syntax.XferTriviaKind.Comment = 1 -> ParksComputing.XferLang.Syntax.XferTriviaKind
+ParksComputing.XferLang.Syntax.XferTriviaKind.Whitespace = 0 -> ParksComputing.XferLang.Syntax.XferTriviaKind
+ParksComputing.XferLang.XferAnnotation
+ParksComputing.XferLang.XferAnnotation.<Clone>$() -> ParksComputing.XferLang.XferAnnotation!
+ParksComputing.XferLang.XferAnnotation.Deconstruct(out string! Name, out ParksComputing.XferLang.XferValue! Value) -> void
+ParksComputing.XferLang.XferAnnotation.Equals(ParksComputing.XferLang.XferAnnotation? other) -> bool
+ParksComputing.XferLang.XferAnnotation.Name.get -> string!
+ParksComputing.XferLang.XferAnnotation.Name.init -> void
+ParksComputing.XferLang.XferAnnotation.Value.get -> ParksComputing.XferLang.XferValue!
+ParksComputing.XferLang.XferAnnotation.Value.init -> void
+ParksComputing.XferLang.XferAnnotation.XferAnnotation(string! Name, ParksComputing.XferLang.XferValue! Value) -> void
+ParksComputing.XferLang.XferBool
+ParksComputing.XferLang.XferBool.Value.get -> bool
+ParksComputing.XferLang.XferBool.XferBool(bool value, System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
 ParksComputing.XferLang.XferDiagnostic
 ParksComputing.XferLang.XferDiagnostic.<Clone>$() -> ParksComputing.XferLang.XferDiagnostic!
 ParksComputing.XferLang.XferDiagnostic.Code.get -> ParksComputing.XferLang.XferDiagnosticCode
@@ -59,6 +170,21 @@ ParksComputing.XferLang.XferDiagnosticCode.XFER0905 = 905 -> ParksComputing.Xfer
 ParksComputing.XferLang.XferDiagnosticCode.XFER0906 = 906 -> ParksComputing.XferLang.XferDiagnosticCode
 ParksComputing.XferLang.XferDiagnosticCode.XFER0907 = 907 -> ParksComputing.XferLang.XferDiagnosticCode
 ParksComputing.XferLang.XferDiagnostics
+ParksComputing.XferLang.XferDocument
+ParksComputing.XferLang.XferException
+ParksComputing.XferLang.XferException.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.XferDiagnostic!>!
+ParksComputing.XferLang.XferException.XferException() -> void
+ParksComputing.XferLang.XferException.XferException(System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.XferDiagnostic!>! diagnostics) -> void
+ParksComputing.XferLang.XferException.XferException(System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.XferDiagnostic!>! diagnostics, string! message) -> void
+ParksComputing.XferLang.XferException.XferException(string! message) -> void
+ParksComputing.XferLang.XferException.XferException(string! message, System.Exception! innerException) -> void
+ParksComputing.XferLang.XferFractional
+ParksComputing.XferLang.XferFractional.Lexeme.get -> string!
+ParksComputing.XferLang.XferFractional.XferFractional(string! lexeme, System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
+ParksComputing.XferLang.XferInteger
+ParksComputing.XferLang.XferInteger.Lexeme.get -> string!
+ParksComputing.XferLang.XferInteger.Value.get -> System.Numerics.BigInteger
+ParksComputing.XferLang.XferInteger.XferInteger(System.Numerics.BigInteger value, string! lexeme, System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
 ParksComputing.XferLang.XferLimits
 ParksComputing.XferLang.XferLimits.<Clone>$() -> ParksComputing.XferLang.XferLimits!
 ParksComputing.XferLang.XferLimits.Depth.get -> int
@@ -73,6 +199,30 @@ ParksComputing.XferLang.XferLimits.RunLength.init -> void
 ParksComputing.XferLang.XferLimits.TokenBytes.get -> int
 ParksComputing.XferLang.XferLimits.TokenBytes.init -> void
 ParksComputing.XferLang.XferLimits.XferLimits() -> void
+ParksComputing.XferLang.XferNull
+ParksComputing.XferLang.XferNull.XferNull(System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
+ParksComputing.XferLang.XferObject
+ParksComputing.XferLang.XferObject.ContainsKey(string! key) -> bool
+ParksComputing.XferLang.XferObject.Count.get -> int
+ParksComputing.XferLang.XferObject.GetAt(int index) -> System.Collections.Generic.KeyValuePair<string!, ParksComputing.XferLang.XferValue!>
+ParksComputing.XferLang.XferObject.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string!, ParksComputing.XferLang.XferValue!>>!
+ParksComputing.XferLang.XferObject.Keys.get -> System.Collections.Generic.IEnumerable<string!>!
+ParksComputing.XferLang.XferObject.TryGetValue(string! key, out ParksComputing.XferLang.XferValue! value) -> bool
+ParksComputing.XferLang.XferObject.Values.get -> System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferValue!>!
+ParksComputing.XferLang.XferObject.XferObject(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, ParksComputing.XferLang.XferValue!>>! members, System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
+ParksComputing.XferLang.XferObject.this[string! key].get -> ParksComputing.XferLang.XferValue!
+ParksComputing.XferLang.XferParseOptions
+ParksComputing.XferLang.XferParseOptions.<Clone>$() -> ParksComputing.XferLang.XferParseOptions!
+ParksComputing.XferLang.XferParseOptions.Equals(ParksComputing.XferLang.XferParseOptions? other) -> bool
+ParksComputing.XferLang.XferParseOptions.Limits.get -> ParksComputing.XferLang.XferLimits!
+ParksComputing.XferLang.XferParseOptions.Limits.init -> void
+ParksComputing.XferLang.XferParseOptions.XferParseOptions() -> void
+ParksComputing.XferLang.XferParseResult
+ParksComputing.XferLang.XferParseResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.XferDiagnostic!>!
+ParksComputing.XferLang.XferParseResult.Ok.get -> bool
+ParksComputing.XferLang.XferParseResult.Tree.get -> ParksComputing.XferLang.Syntax.XferSyntaxTree!
+ParksComputing.XferLang.XferParseResult.Value.get -> ParksComputing.XferLang.XferValue?
+ParksComputing.XferLang.XferParseResult.Version.get -> int
 ParksComputing.XferLang.XferPosition
 ParksComputing.XferLang.XferPosition.Column.get -> int
 ParksComputing.XferLang.XferPosition.Column.init -> void
@@ -84,26 +234,107 @@ ParksComputing.XferLang.XferPosition.Offset.get -> int
 ParksComputing.XferLang.XferPosition.Offset.init -> void
 ParksComputing.XferLang.XferPosition.XferPosition() -> void
 ParksComputing.XferLang.XferPosition.XferPosition(int Offset, int Line, int Column) -> void
+ParksComputing.XferLang.XferSequence
+ParksComputing.XferLang.XferSequence.Count.get -> int
+ParksComputing.XferLang.XferSequence.GetEnumerator() -> System.Collections.Generic.IEnumerator<ParksComputing.XferLang.XferValue!>!
+ParksComputing.XferLang.XferSequence.XferSequence(System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferValue!>! items, System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
+ParksComputing.XferLang.XferSequence.this[int index].get -> ParksComputing.XferLang.XferValue!
 ParksComputing.XferLang.XferSeverity
 ParksComputing.XferLang.XferSeverity.Error = 0 -> ParksComputing.XferLang.XferSeverity
 ParksComputing.XferLang.XferSeverity.Info = 2 -> ParksComputing.XferLang.XferSeverity
 ParksComputing.XferLang.XferSeverity.Warning = 1 -> ParksComputing.XferLang.XferSeverity
+ParksComputing.XferLang.XferString
+ParksComputing.XferLang.XferString.Value.get -> string!
+ParksComputing.XferLang.XferString.XferString(string! value, System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
+ParksComputing.XferLang.XferSymbol
+ParksComputing.XferLang.XferSymbol.Name.get -> string!
+ParksComputing.XferLang.XferSymbol.XferSymbol(string! name, System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
+ParksComputing.XferLang.XferTemporal
+ParksComputing.XferLang.XferTemporal.Lexeme.get -> string!
+ParksComputing.XferLang.XferTemporal.TemporalKind.get -> ParksComputing.XferLang.XferTemporalKind
+ParksComputing.XferLang.XferTemporal.XferTemporal(ParksComputing.XferLang.XferTemporalKind temporalKind, string! lexeme, System.Collections.Generic.IEnumerable<ParksComputing.XferLang.XferAnnotation!>? annotations = null) -> void
+ParksComputing.XferLang.XferTemporalKind
+ParksComputing.XferLang.XferTemporalKind.Date = 0 -> ParksComputing.XferLang.XferTemporalKind
+ParksComputing.XferLang.XferTemporalKind.DateTime = 3 -> ParksComputing.XferLang.XferTemporalKind
+ParksComputing.XferLang.XferTemporalKind.LocalDateTime = 2 -> ParksComputing.XferLang.XferTemporalKind
+ParksComputing.XferLang.XferTemporalKind.Time = 1 -> ParksComputing.XferLang.XferTemporalKind
+ParksComputing.XferLang.XferValue
+ParksComputing.XferLang.XferValue.Annotations.get -> System.Collections.Generic.IReadOnlyList<ParksComputing.XferLang.XferAnnotation!>!
+ParksComputing.XferLang.XferValue.Equals(ParksComputing.XferLang.XferValue? other) -> bool
+ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.Bool = 5 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.Date = 8 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.DateTime = 11 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.Fractional = 4 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.Integer = 3 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.LocalDateTime = 10 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.Null = 6 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.Object = 0 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.Sequence = 1 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.String = 2 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.Symbol = 7 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferValueKind.Time = 9 -> ParksComputing.XferLang.XferValueKind
+abstract ParksComputing.XferLang.Syntax.XferNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
+abstract ParksComputing.XferLang.XferValue.Kind.get -> ParksComputing.XferLang.XferValueKind
+override ParksComputing.XferLang.Syntax.XferErrorNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
+override ParksComputing.XferLang.Syntax.XferObjectNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
+override ParksComputing.XferLang.Syntax.XferScalarNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
+override ParksComputing.XferLang.Syntax.XferSequenceNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
+override ParksComputing.XferLang.Syntax.XferSkippedSyntax.Equals(object? obj) -> bool
+override ParksComputing.XferLang.Syntax.XferSkippedSyntax.GetHashCode() -> int
+override ParksComputing.XferLang.Syntax.XferToken.Equals(object? obj) -> bool
+override ParksComputing.XferLang.Syntax.XferToken.GetHashCode() -> int
+override ParksComputing.XferLang.Syntax.XferToken.ToString() -> string!
+override ParksComputing.XferLang.Syntax.XferTrivia.Equals(object? obj) -> bool
+override ParksComputing.XferLang.Syntax.XferTrivia.GetHashCode() -> int
+override ParksComputing.XferLang.XferAnnotation.Equals(object? obj) -> bool
+override ParksComputing.XferLang.XferAnnotation.GetHashCode() -> int
+override ParksComputing.XferLang.XferAnnotation.ToString() -> string!
+override ParksComputing.XferLang.XferBool.Kind.get -> ParksComputing.XferLang.XferValueKind
 override ParksComputing.XferLang.XferDiagnostic.Equals(object? obj) -> bool
 override ParksComputing.XferLang.XferDiagnostic.GetHashCode() -> int
 override ParksComputing.XferLang.XferDiagnostic.ToString() -> string!
+override ParksComputing.XferLang.XferFractional.Kind.get -> ParksComputing.XferLang.XferValueKind
+override ParksComputing.XferLang.XferInteger.Kind.get -> ParksComputing.XferLang.XferValueKind
 override ParksComputing.XferLang.XferLimits.Equals(object? obj) -> bool
 override ParksComputing.XferLang.XferLimits.GetHashCode() -> int
 override ParksComputing.XferLang.XferLimits.ToString() -> string!
+override ParksComputing.XferLang.XferNull.Kind.get -> ParksComputing.XferLang.XferValueKind
+override ParksComputing.XferLang.XferObject.Kind.get -> ParksComputing.XferLang.XferValueKind
+override ParksComputing.XferLang.XferParseOptions.Equals(object? obj) -> bool
+override ParksComputing.XferLang.XferParseOptions.GetHashCode() -> int
+override ParksComputing.XferLang.XferParseOptions.ToString() -> string!
 override ParksComputing.XferLang.XferPosition.GetHashCode() -> int
+override ParksComputing.XferLang.XferSequence.Kind.get -> ParksComputing.XferLang.XferValueKind
+override ParksComputing.XferLang.XferString.Kind.get -> ParksComputing.XferLang.XferValueKind
+override ParksComputing.XferLang.XferSymbol.Kind.get -> ParksComputing.XferLang.XferValueKind
+override ParksComputing.XferLang.XferTemporal.Kind.get -> ParksComputing.XferLang.XferValueKind
+override ParksComputing.XferLang.XferValue.Equals(object? obj) -> bool
+override ParksComputing.XferLang.XferValue.GetHashCode() -> int
+static ParksComputing.XferLang.Syntax.XferSkippedSyntax.operator !=(ParksComputing.XferLang.Syntax.XferSkippedSyntax left, ParksComputing.XferLang.Syntax.XferSkippedSyntax right) -> bool
+static ParksComputing.XferLang.Syntax.XferSkippedSyntax.operator ==(ParksComputing.XferLang.Syntax.XferSkippedSyntax left, ParksComputing.XferLang.Syntax.XferSkippedSyntax right) -> bool
+static ParksComputing.XferLang.Syntax.XferToken.operator !=(ParksComputing.XferLang.Syntax.XferToken left, ParksComputing.XferLang.Syntax.XferToken right) -> bool
+static ParksComputing.XferLang.Syntax.XferToken.operator ==(ParksComputing.XferLang.Syntax.XferToken left, ParksComputing.XferLang.Syntax.XferToken right) -> bool
+static ParksComputing.XferLang.Syntax.XferTrivia.operator !=(ParksComputing.XferLang.Syntax.XferTrivia left, ParksComputing.XferLang.Syntax.XferTrivia right) -> bool
+static ParksComputing.XferLang.Syntax.XferTrivia.operator ==(ParksComputing.XferLang.Syntax.XferTrivia left, ParksComputing.XferLang.Syntax.XferTrivia right) -> bool
+static ParksComputing.XferLang.XferAnnotation.operator !=(ParksComputing.XferLang.XferAnnotation? left, ParksComputing.XferLang.XferAnnotation? right) -> bool
+static ParksComputing.XferLang.XferAnnotation.operator ==(ParksComputing.XferLang.XferAnnotation? left, ParksComputing.XferLang.XferAnnotation? right) -> bool
 static ParksComputing.XferLang.XferDiagnostic.operator !=(ParksComputing.XferLang.XferDiagnostic? left, ParksComputing.XferLang.XferDiagnostic? right) -> bool
 static ParksComputing.XferLang.XferDiagnostic.operator ==(ParksComputing.XferLang.XferDiagnostic? left, ParksComputing.XferLang.XferDiagnostic? right) -> bool
 static ParksComputing.XferLang.XferDiagnostics.Format(ParksComputing.XferLang.XferDiagnosticCode code) -> string!
 static ParksComputing.XferLang.XferDiagnostics.SeverityOf(ParksComputing.XferLang.XferDiagnosticCode code) -> ParksComputing.XferLang.XferSeverity
 static ParksComputing.XferLang.XferDiagnostics.SummaryOf(ParksComputing.XferLang.XferDiagnosticCode code) -> string!
 static ParksComputing.XferLang.XferDiagnostics.TryParse(string? text, out ParksComputing.XferLang.XferDiagnosticCode code) -> bool
+static ParksComputing.XferLang.XferDocument.Parse(System.ReadOnlySpan<byte> utf8, ParksComputing.XferLang.XferParseOptions? options = null) -> ParksComputing.XferLang.XferParseResult!
+static ParksComputing.XferLang.XferDocument.Parse(string! text, ParksComputing.XferLang.XferParseOptions? options = null) -> ParksComputing.XferLang.XferParseResult!
+static ParksComputing.XferLang.XferDocument.ParseAsync(System.IO.Stream! stream, ParksComputing.XferLang.XferParseOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ParksComputing.XferLang.XferParseResult!>
+static ParksComputing.XferLang.XferDocument.ParseValue(System.ReadOnlySpan<byte> utf8, ParksComputing.XferLang.XferParseOptions? options = null) -> ParksComputing.XferLang.XferValue!
+static ParksComputing.XferLang.XferDocument.ParseValue(string! text, ParksComputing.XferLang.XferParseOptions? options = null) -> ParksComputing.XferLang.XferValue!
 static ParksComputing.XferLang.XferLimits.Default.get -> ParksComputing.XferLang.XferLimits!
 static ParksComputing.XferLang.XferLimits.operator !=(ParksComputing.XferLang.XferLimits? left, ParksComputing.XferLang.XferLimits? right) -> bool
 static ParksComputing.XferLang.XferLimits.operator ==(ParksComputing.XferLang.XferLimits? left, ParksComputing.XferLang.XferLimits? right) -> bool
+static ParksComputing.XferLang.XferParseOptions.operator !=(ParksComputing.XferLang.XferParseOptions? left, ParksComputing.XferLang.XferParseOptions? right) -> bool
+static ParksComputing.XferLang.XferParseOptions.operator ==(ParksComputing.XferLang.XferParseOptions? left, ParksComputing.XferLang.XferParseOptions? right) -> bool
 static ParksComputing.XferLang.XferPosition.Origin.get -> ParksComputing.XferLang.XferPosition
 static ParksComputing.XferLang.XferPosition.operator !=(ParksComputing.XferLang.XferPosition left, ParksComputing.XferLang.XferPosition right) -> bool
 static ParksComputing.XferLang.XferPosition.operator ==(ParksComputing.XferLang.XferPosition left, ParksComputing.XferLang.XferPosition right) -> bool

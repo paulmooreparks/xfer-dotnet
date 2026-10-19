@@ -86,6 +86,10 @@ internal sealed class Lexer
         ArgumentNullException.ThrowIfNull(diagnostics);
         var lexer = new Lexer(text, limits, diagnostics);
         lexer.Run();
+
+        // The stream is kept for as long as the tree is, so give back what the estimate overshot.
+        lexer.tokens.TrimExcess();
+        lexer.trivia.TrimExcess();
         return new TokenStream(text, lexer.tokens, lexer.trivia);
     }
 
@@ -98,7 +102,7 @@ internal sealed class Lexer
             int count = trivia.Count - firstTrivia;
             if (index >= text.Length)
             {
-                tokens.Add(new Token(TokenKind.EndOfFile, index, 0, firstTrivia, count));
+                tokens.Add(new Token(XferTokenKind.EndOfFile, index, 0, firstTrivia, count));
                 return;
             }
 
@@ -168,7 +172,7 @@ internal sealed class Lexer
 
     private void Report(XferDiagnosticCode code, int at, string? detail = null) => diagnostics.Add(new PendingDiagnostic(code, at, detail));
 
-    private void Add(TokenKind kind, int start, int firstTrivia, int triviaCount, StringForm form = StringForm.None, int run = 0, Keyword keyword = Keyword.None)
+    private void Add(XferTokenKind kind, int start, int firstTrivia, int triviaCount, XferStringForm form = XferStringForm.None, int run = 0, XferKeyword keyword = XferKeyword.None)
     {
         tokens.Add(new Token(kind, start, index - start, firstTrivia, triviaCount, form, run, keyword));
     }
@@ -188,7 +192,7 @@ internal sealed class Lexer
                     index++;
                 }
 
-                trivia.Add(new Trivia(TriviaKind.Whitespace, start, index - start));
+                trivia.Add(new Trivia(XferTriviaKind.Whitespace, start, index - start));
             }
             else if (c == LessThan && Code(index + 1) == Slash)
             {
@@ -235,7 +239,7 @@ internal sealed class Lexer
             }
         }
 
-        trivia.Add(new Trivia(TriviaKind.Comment, start, index - start, n));
+        trivia.Add(new Trivia(XferTriviaKind.Comment, start, index - start, n));
     }
 
     // Tokens.
@@ -248,19 +252,19 @@ internal sealed class Lexer
         {
             case LeftBrace:
                 index++;
-                Add(TokenKind.LeftBrace, start, firstTrivia, triviaCount);
+                Add(XferTokenKind.LeftBrace, start, firstTrivia, triviaCount);
                 return;
             case RightBrace:
                 index++;
-                Add(TokenKind.RightBrace, start, firstTrivia, triviaCount);
+                Add(XferTokenKind.RightBrace, start, firstTrivia, triviaCount);
                 return;
             case LeftBracket:
                 index++;
-                Add(TokenKind.LeftBracket, start, firstTrivia, triviaCount);
+                Add(XferTokenKind.LeftBracket, start, firstTrivia, triviaCount);
                 return;
             case RightBracket:
                 index++;
-                Add(TokenKind.RightBracket, start, firstTrivia, triviaCount);
+                Add(XferTokenKind.RightBracket, start, firstTrivia, triviaCount);
                 return;
             case LessThan:
                 // "</" was taken as a comment, so this "<" begins an annotation or nothing.
@@ -268,18 +272,18 @@ internal sealed class Lexer
                 if (Code() == Bang)
                 {
                     index++;
-                    Add(TokenKind.AnnotationOpen, start, firstTrivia, triviaCount);
+                    Add(XferTokenKind.AnnotationOpen, start, firstTrivia, triviaCount);
                     return;
                 }
 
                 Report(XferDiagnosticCode.XFER0102, start);
-                Add(TokenKind.Error, start, firstTrivia, triviaCount);
+                Add(XferTokenKind.Error, start, firstTrivia, triviaCount);
                 return;
             case Bang:
                 if (Code(index + 1) == GreaterThan)
                 {
                     index += 2;
-                    Add(TokenKind.AnnotationClose, start, firstTrivia, triviaCount);
+                    Add(XferTokenKind.AnnotationClose, start, firstTrivia, triviaCount);
                     return;
                 }
 
@@ -311,7 +315,7 @@ internal sealed class Lexer
     }
 
     /// <summary>Finishes a scalar token: the token-length limit, then the separation rule.</summary>
-    private void Scalar(TokenKind kind, int start, int firstTrivia, int triviaCount, StringForm form = StringForm.None, int run = 0, Keyword keyword = Keyword.None)
+    private void Scalar(XferTokenKind kind, int start, int firstTrivia, int triviaCount, XferStringForm form = XferStringForm.None, int run = 0, XferKeyword keyword = XferKeyword.None)
     {
         Add(kind, start, firstTrivia, triviaCount, form, run, keyword);
         if (index - start > limits.TokenBytes)
@@ -329,7 +333,7 @@ internal sealed class Lexer
             }
 
             // The text that ran on is one error token with no trivia of its own.
-            Add(TokenKind.Error, errorStart, trivia.Count, 0);
+            Add(XferTokenKind.Error, errorStart, trivia.Count, 0);
         }
     }
 
@@ -342,7 +346,7 @@ internal sealed class Lexer
             Advance();
         }
 
-        Add(TokenKind.Error, start, firstTrivia, triviaCount);
+        Add(XferTokenKind.Error, start, firstTrivia, triviaCount);
     }
 
     private void Unexpected(int start, int firstTrivia, int triviaCount)
@@ -365,7 +369,7 @@ internal sealed class Lexer
         // string, so ""x"" is the empty string and then a separation error at x.
         if (n == 2)
         {
-            Scalar(TokenKind.String, start, firstTrivia, triviaCount, StringForm.Repetition, 1);
+            Scalar(XferTokenKind.String, start, firstTrivia, triviaCount, XferStringForm.Repetition, 1);
             return;
         }
 
@@ -375,7 +379,7 @@ internal sealed class Lexer
             if (c < 0)
             {
                 Report(XferDiagnosticCode.XFER0201, start, $"opened with a run of {n} {(n == 1 ? "quote" : "quotes")}");
-                Add(TokenKind.Error, start, firstTrivia, triviaCount);
+                Add(XferTokenKind.Error, start, firstTrivia, triviaCount);
                 return;
             }
 
@@ -383,7 +387,7 @@ internal sealed class Lexer
             {
                 if (RunOf(Quote) == n)
                 {
-                    Scalar(TokenKind.String, start, firstTrivia, triviaCount, StringForm.Repetition, n);
+                    Scalar(XferTokenKind.String, start, firstTrivia, triviaCount, XferStringForm.Repetition, n);
                     return;
                 }
             }
@@ -401,7 +405,7 @@ internal sealed class Lexer
         {
             // Only the hashes are in error; lexing continues after them.
             Report(XferDiagnosticCode.XFER0202, start);
-            Add(TokenKind.Error, start, firstTrivia, triviaCount);
+            Add(XferTokenKind.Error, start, firstTrivia, triviaCount);
             return;
         }
 
@@ -417,7 +421,7 @@ internal sealed class Lexer
             if (c < 0)
             {
                 Report(XferDiagnosticCode.XFER0201, start, $"opened with {new string('#', Math.Min(m, 8))}\"");
-                Add(TokenKind.Error, start, firstTrivia, triviaCount);
+                Add(XferTokenKind.Error, start, firstTrivia, triviaCount);
                 return;
             }
 
@@ -426,7 +430,7 @@ internal sealed class Lexer
                 index++;
                 if (RunOf(Hash) == m)
                 {
-                    Scalar(TokenKind.String, start, firstTrivia, triviaCount, StringForm.Hash, m);
+                    Scalar(XferTokenKind.String, start, firstTrivia, triviaCount, XferStringForm.Hash, m);
                     return;
                 }
             }
@@ -492,7 +496,7 @@ internal sealed class Lexer
             if (StartsWithInf())
             {
                 index += 3;
-                Scalar(TokenKind.Keyword, start, firstTrivia, triviaCount, keyword: Keyword.MinusInf);
+                Scalar(XferTokenKind.Keyword, start, firstTrivia, triviaCount, keyword: XferKeyword.MinusInf);
                 return;
             }
 
@@ -523,7 +527,7 @@ internal sealed class Lexer
                     return;
                 }
 
-                Scalar(TokenKind.Integer, start, firstTrivia, triviaCount);
+                Scalar(XferTokenKind.Integer, start, firstTrivia, triviaCount);
                 return;
             }
 
@@ -565,7 +569,7 @@ internal sealed class Lexer
             return;
         }
 
-        TokenKind kind = TokenKind.Integer;
+        XferTokenKind kind = XferTokenKind.Integer;
         if (Code() == Dot)
         {
             index++;
@@ -576,7 +580,7 @@ internal sealed class Lexer
                 return;
             }
 
-            kind = TokenKind.Fractional;
+            kind = XferTokenKind.Fractional;
         }
 
         int e = Code();
@@ -596,7 +600,7 @@ internal sealed class Lexer
                 return;
             }
 
-            kind = TokenKind.Fractional;
+            kind = XferTokenKind.Fractional;
         }
 
         Scalar(kind, start, firstTrivia, triviaCount);
@@ -678,7 +682,7 @@ internal sealed class Lexer
     /// </summary>
     private void Temporal(int start, int firstTrivia, int triviaCount, bool dated)
     {
-        TokenKind kind;
+        XferTokenKind kind;
         bool valid;
 
         if (dated)
@@ -700,7 +704,7 @@ internal sealed class Lexer
             }
 
             valid = ValidDate(year, month, day);
-            kind = TokenKind.Date;
+            kind = XferTokenKind.Date;
             if (Code() == UpperT)
             {
                 index++;
@@ -713,12 +717,12 @@ internal sealed class Lexer
                 }
 
                 valid = valid && ValidTime(hour, time.Value.Minute, time.Value.Second);
-                kind = TokenKind.LocalDateTime;
+                kind = XferTokenKind.LocalDateTime;
                 int o = Code();
                 if (o == UpperZ)
                 {
                     index++;
-                    kind = TokenKind.DateTime;
+                    kind = XferTokenKind.DateTime;
                 }
                 else if (o is Plus or Minus)
                 {
@@ -738,7 +742,7 @@ internal sealed class Lexer
                     }
 
                     valid = valid && offsetHour <= 23 && offsetMinute <= 59;
-                    kind = TokenKind.DateTime;
+                    kind = XferTokenKind.DateTime;
                 }
             }
         }
@@ -753,13 +757,13 @@ internal sealed class Lexer
             }
 
             valid = ValidTime(hour, time.Value.Minute, time.Value.Second);
-            kind = TokenKind.Time;
+            kind = XferTokenKind.Time;
         }
 
         if (!valid)
         {
             Report(XferDiagnosticCode.XFER0305, start);
-            Scalar(TokenKind.Error, start, firstTrivia, triviaCount);
+            Scalar(XferTokenKind.Error, start, firstTrivia, triviaCount);
             return;
         }
 
@@ -781,30 +785,30 @@ internal sealed class Lexer
             Report(XferDiagnosticCode.XFER0105, start);
         }
 
-        Keyword keyword = KeywordOf(text.AsSpan(start, index - start));
-        if (keyword != Keyword.None)
+        XferKeyword keyword = KeywordOf(text.AsSpan(start, index - start));
+        if (keyword != XferKeyword.None)
         {
-            Scalar(TokenKind.Keyword, start, firstTrivia, triviaCount, keyword: keyword);
+            Scalar(XferTokenKind.Keyword, start, firstTrivia, triviaCount, keyword: keyword);
             return;
         }
 
-        Scalar(TokenKind.Identifier, start, firstTrivia, triviaCount);
+        Scalar(XferTokenKind.Identifier, start, firstTrivia, triviaCount);
     }
 
     /// <summary>
     /// The bare words that are not symbols (specification 4.2). <c>-inf</c> is also a keyword, but
     /// it begins with <c>-</c>, which no identifier may, so it is lexed as a number.
     /// </summary>
-    internal static Keyword KeywordOf(ReadOnlySpan<byte> word)
+    internal static XferKeyword KeywordOf(ReadOnlySpan<byte> word)
     {
         return word switch
         {
-            [(byte)'t', (byte)'r', (byte)'u', (byte)'e'] => Keyword.True,
-            [(byte)'f', (byte)'a', (byte)'l', (byte)'s', (byte)'e'] => Keyword.False,
-            [(byte)'n', (byte)'u', (byte)'l', (byte)'l'] => Keyword.Null,
-            [(byte)'i', (byte)'n', (byte)'f'] => Keyword.Inf,
-            [(byte)'n', (byte)'a', (byte)'n'] => Keyword.Nan,
-            _ => Keyword.None,
+            [(byte)'t', (byte)'r', (byte)'u', (byte)'e'] => XferKeyword.True,
+            [(byte)'f', (byte)'a', (byte)'l', (byte)'s', (byte)'e'] => XferKeyword.False,
+            [(byte)'n', (byte)'u', (byte)'l', (byte)'l'] => XferKeyword.Null,
+            [(byte)'i', (byte)'n', (byte)'f'] => XferKeyword.Inf,
+            [(byte)'n', (byte)'a', (byte)'n'] => XferKeyword.Nan,
+            _ => XferKeyword.None,
         };
     }
 

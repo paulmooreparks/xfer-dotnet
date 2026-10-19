@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Nodes;
 
 namespace ParksComputing.XferLang.Tests.Harness;
@@ -37,7 +38,14 @@ internal sealed record FromJsonOutcome(string? Canonical, IReadOnlyList<string> 
 internal static class Subject
 {
     /// <summary>Parses the bytes; on success also writes the canonical form and the tagged model.</summary>
-    public static ParseOutcome Parse(byte[] input) => throw new NotImplementedException("parser (step 5)");
+    public static ParseOutcome Parse(byte[] input)
+    {
+        XferParseResult result = XferDocument.Parse(input);
+        DiagnosticInfo[] diagnostics = [.. result.Diagnostics.Select(d => new DiagnosticInfo(d.CodeText, d.Start.Line, d.Start.Column))];
+        JsonNode? tagged = result.Ok ? TaggedWriter.ToTaggedDocument(result) : null;
+        string? canonical = null; // the canonical writer is step 6
+        return new ParseOutcome(result.Ok, diagnostics, canonical, tagged, TaggedWriter.TokensInOrder(result.Tree));
+    }
 
     /// <summary>The canonical form of the text parsed as a document, or null if it does not parse.</summary>
     public static string? Canonicalize(string text) => throw new NotImplementedException("canonical writer (step 6)");
