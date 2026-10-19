@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Runs the xfer tool of this repository and the xfer-js CLI on the same inputs and requires the
+    same exit codes and bytes (DESIGN.md section 12.6). Skipped unless XFER_JS_CLI is the path of a
+    built xfer-js dist/cli.mjs and node is on the path.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <NoWarn>$(NoWarn);CS1591;CA1861;CA1859;CA1805</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The tool is run as a process, from its own output, so it is built but not referenced. -->
+    <ProjectReference Include="../../src/ParksComputing.XferLang.Tool/ParksComputing.XferLang.Tool.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../src/ParksComputing.XferLang/ParksComputing.XferLang.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Where the tool's output is, for the tests to find xfer.dll in any configuration. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>ToolDirectory</_Parameter1>
+      <_Parameter2>$(MSBuildThisFileDirectory)../../src/ParksComputing.XferLang.Tool/bin/$(Configuration)/$(TargetFramework)/</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>
