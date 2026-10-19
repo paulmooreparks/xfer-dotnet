@@ -141,8 +141,57 @@ public sealed partial class DifferentialTests : IDisposable
     }
 
     /// <summary>
-    /// Runs each command over all the inputs, many files to an invocation; when an invocation
-    /// differs, the inputs of that batch are run one at a time to say which one it was.
+    /// Whether the library says a command succeeds on an input. It sorts the inputs into batches
+    /// that should succeed and batches that should fail: a batch's exit code is that of its worst
+    /// file, so in a batch of successes a file one CLI fails changes the exit code, and in a batch
+    /// of failures a file one CLI accepts loses its diagnostics from standard error, since every
+    /// failure writes one there.
+    /// </summary>
+    private static bool Succeeds(string command, byte[] input)
+    {
+        if (command == "from-json")
+        {
+            ReadOnlySpan<byte> body = input.AsSpan().StartsWith((ReadOnlySpan<byte>)[0xEF, 0xBB, 0xBF]) ? input.AsSpan(3) : input;
+            string text;
+            try
+            {
+                text = new UTF8Encoding(false, throwOnInvalidBytes: true).GetString(body);
+            }
+            catch (DecoderFallbackException)
+            {
+                return false;
+            }
+
+            XferJsonResult<XferValue?> converted = XferJson.FromJson(text);
+            return converted.Value is not null && Writes(converted.Value);
+        }
+
+        XferParseResult parsed = XferDocument.Parse(input);
+        return command switch
+        {
+            "validate" => parsed.Ok,
+            "to-json" => parsed is { Ok: true, Value: not null } && !XferJson.ToJson(parsed.Value).Diagnostics.Any(d => d.Severity == XferSeverity.Error),
+            _ => parsed is { Ok: true, Value: not null } && Writes(parsed.Value),
+        };
+
+        static bool Writes(XferValue value)
+        {
+            try
+            {
+                _ = XferWriter.Canonical(value);
+                return true;
+            }
+            catch (Exception e) when (e is XferException or ArgumentException)
+            {
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Runs each command over all the inputs, many files to an invocation, with the inputs the
+    /// command should succeed on batched apart from the rest (see <see cref="Succeeds"/>); when an
+    /// invocation differs, the inputs of that batch are run one at a time to say which one it was.
     /// </summary>
     private async Task AssertSameOnAll(IReadOnlyList<byte[]> inputs, string extension, IReadOnlyList<string[]> commands)
     {
@@ -156,29 +205,41 @@ public sealed partial class DifferentialTests : IDisposable
 
         foreach (string[] command in commands)
         {
-            for (int from = 0; from < names.Count; from += Batch)
+            bool[] succeeds = [.. inputs.Select(input => Succeeds(command[0], input))];
+            Assert.True(succeeds.Count(s => s) >= 100, $"xfer {string.Join(' ', command)} should succeed on only {succeeds.Count(s => s)} inputs");
+            Assert.True(succeeds.Count(s => !s) >= 100, $"xfer {string.Join(' ', command)} should fail on only {succeeds.Count(s => !s)} inputs");
+            foreach (bool group in new[] { true, false })
             {
-                string[] args = [.. command, .. names.Skip(from).Take(Batch)];
-                Outcome js = await Run(js: true, work, args);
-                Outcome dotnet = await Run(js: false, work, args);
-                if (Same(js, dotnet))
-                {
-                    // Every batch has valid inputs, so a converter that printed nothing compared nothing.
-                    Assert.True(command[0] == "validate" || js.Stdout.Length > 0, $"xfer {string.Join(' ', command)} printed nothing for a batch");
-                    continue;
-                }
-
-                foreach (string name in names.Skip(from).Take(Batch))
-                {
-                    js = await Run(js: true, work, [.. command, name]);
-                    dotnet = await Run(js: false, work, [.. command, name]);
-                    Assert.True(
-                        Same(js, dotnet),
-                        $"xfer {string.Join(' ', command)} on {name}, whose bytes are:\n{Convert.ToHexString(await File.ReadAllBytesAsync(Path.Combine(work, name), Token))}\n{Show(await File.ReadAllBytesAsync(Path.Combine(work, name), Token))}\n=== xfer-js\n{js.Describe()}\n=== xfer-dotnet\n{dotnet.Describe()}");
-                }
-
-                Assert.Fail($"xfer {string.Join(' ', command)} differed on a batch, but on no input alone");
+                await AssertSameOnBatches([.. names.Where((_, i) => succeeds[i] == group)], command, group);
             }
+        }
+    }
+
+    private async Task AssertSameOnBatches(IReadOnlyList<string> names, string[] command, bool succeeding)
+    {
+        for (int from = 0; from < names.Count; from += Batch)
+        {
+            string[] args = [.. command, .. names.Skip(from).Take(Batch)];
+            Outcome js = await Run(js: true, work, args);
+            Outcome dotnet = await Run(js: false, work, args);
+            if (Same(js, dotnet))
+            {
+                // A converter that printed nothing for a batch of successes compared nothing.
+                Assert.True(!succeeding || command[0] == "validate" || js.Stdout.Length > 0, $"xfer {string.Join(' ', command)} printed nothing for a batch");
+                Assert.Equal(succeeding ? 0 : 1, js.Exit);
+                continue;
+            }
+
+            foreach (string name in names.Skip(from).Take(Batch))
+            {
+                js = await Run(js: true, work, [.. command, name]);
+                dotnet = await Run(js: false, work, [.. command, name]);
+                Assert.True(
+                    Same(js, dotnet),
+                    $"xfer {string.Join(' ', command)} on {name}, whose bytes are:\n{Convert.ToHexString(await File.ReadAllBytesAsync(Path.Combine(work, name), Token))}\n{Show(await File.ReadAllBytesAsync(Path.Combine(work, name), Token))}\n=== xfer-js\n{js.Describe()}\n=== xfer-dotnet\n{dotnet.Describe()}");
+            }
+
+            Assert.Fail($"xfer {string.Join(' ', command)} differed on a batch, but on no input alone");
         }
     }
 
@@ -230,6 +291,21 @@ public sealed partial class DifferentialTests : IDisposable
         for (int i = 0; i < 3; i++)
         {
             Assert.Equal(outcomes[0].Files[i], outcomes[1].Files[i]);
+        }
+    }
+
+    [Fact]
+    public async Task AFileOpenForWritingElsewhere()
+    {
+        RequireJs();
+        string path = Path.Combine(work, "held.xfer");
+        await File.WriteAllTextAsync(path, "{a   1}", Token);
+
+        // Another program has the file open for writing, sharing it as a log writer or an editor does.
+        using (new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite))
+        {
+            await AssertSame(work, ["validate", "held.xfer"]);
+            await AssertSame(work, ["fmt", "held.xfer"]);
         }
     }
 

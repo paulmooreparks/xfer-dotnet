@@ -165,7 +165,7 @@ internal static class Program
         {
             try
             {
-                inputs.Add((file, file == "-" ? ReadStandardInput() : File.ReadAllBytes(file)));
+                inputs.Add((file, file == "-" ? ReadStandardInput() : ReadFile(file)));
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             {
@@ -188,7 +188,8 @@ internal static class Program
                 {
                     try
                     {
-                        File.WriteAllBytes(file, written);
+                        using var stream = new FileStream(file, FileMode.Create, FileAccess.Write, Shared);
+                        stream.Write(written);
                     }
                     catch (Exception e) when (e is IOException or UnauthorizedAccessException)
                     {
@@ -211,6 +212,19 @@ internal static class Program
         string version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0";
         int plus = version.IndexOf('+', StringComparison.Ordinal);
         return plus < 0 ? version : version[..plus]; // the source revision is not part of the version
+    }
+
+    // A file another program has open, for writing as well (a log, an editor's buffer), is read
+    // and written as Node reads and writes it. File.ReadAllBytes would refuse it on Windows, since
+    // it shares the file for reading only.
+    private const FileShare Shared = FileShare.ReadWrite | FileShare.Delete;
+
+    private static byte[] ReadFile(string file)
+    {
+        using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, Shared);
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return buffer.ToArray();
     }
 
     private static byte[] ReadStandardInput()

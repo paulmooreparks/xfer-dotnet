@@ -26,12 +26,20 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      # The xfer-js CLI the differential tests compare against (DESIGN.md section 12.6), at the
-      # release named in xfer-js.version.
+      # The xfer-js CLI the differential tests compare against (DESIGN.md section 12.6): the release
+      # on the first line of xfer-js.version, whose tarball must have the integrity on the second.
+      # The package has no dependencies and no install scripts, and none are run.
       - name: Install xfer-js
         shell: bash
         run: |
-          npm install --no-save --prefix "$RUNNER_TEMP/xfer-js" "xferlang@$(cat xfer-js.version)"
+          version="$(sed -n 1p xfer-js.version)"
+          expected="$(sed -n 2p xfer-js.version)"
+          mkdir -p "$RUNNER_TEMP/xfer-js"
+          npm pack "xferlang@$version" --pack-destination "$RUNNER_TEMP/xfer-js"
+          tarball="$RUNNER_TEMP/xfer-js/xferlang-$version.tgz"
+          actual="sha512-$(openssl dgst -sha512 -binary "$tarball" | openssl base64 -A)"
+          test "$actual" = "$expected" || { echo "xferlang@$version is $actual, not $expected"; exit 1; }
+          npm install --no-save --ignore-scripts --prefix "$RUNNER_TEMP/xfer-js" "$tarball"
           cli="$RUNNER_TEMP/xfer-js/node_modules/xferlang/dist/cli.mjs"
           test -f "$cli"
           echo "XFER_JS_CLI=$cli" >> "$GITHUB_ENV"
