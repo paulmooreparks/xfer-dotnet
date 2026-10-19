@@ -506,3 +506,12 @@ There are no open questions. New ones go here as they arise.
 ## 17. Decisions recorded
 
 The design was reviewed cold by a separate Opus agent on 2026-10-19 before any code was written. It found thirteen problems, all fixed in this document: C# 14 is unsupported on `net8.0` (at the time C# 12; since superseded by the move to `net10.0` only and C# 14); the temporal limits missed year 0000, offsets beyond 14:00 and UTC overflow; the migration missed four places that hold 0.x text, two places that write XferLang by hand, and the `NavNode` aliases; the compact writer had no consumer (removed); three API shapes could not compile or keep their promise (`XferNamingPolicy`, `XferLimits`, the `long` sizes); the write table had a culture-dependent number format, a host-dependent `DateTime` and missing rows; member rules and mapping errors were unstated; per-diagnostic position lookup was quadratic; the JSON byte overload had no rule for a BOM or invalid UTF-8; an async overload the engine uses was missing; byte-identical CLI output was impossible for `--version`; the step order needed the JSON archives and the fixtures earlier; and the `object` round trip had no oracle.
+
+### Step 2: the conformance harness
+
+Done 2026-10-19 (Sonnet, then a cold Opus review whose findings are applied). 184 suite cases (valid 48, invalid 82, to-json 14, from-json 40) are generated as one xUnit test each and all are on `expected-failures.txt`. `Subject` is the single seam between the tests and the library: later steps replace its method bodies. What the review changed:
+
+- **The lossless check is computed by the harness.** `Subject.Parse` returns the tokens with their leading trivia, and `Lossless.Reconstruct` concatenates them and is compared with `Lossless.Normalize` of the input, computed independently from the bytes, so an implementation cannot satisfy the check by returning the same string twice.
+- **Member order is compared only inside XferLang objects.** The order of a tagged wrapper's own keys (`type`, `value`, `annotations`) is not specified by the suite's README, so the earlier all-keys comparison could have failed a correct implementation.
+- **The JSON archives and `valid.txtar` and `invalid.txtar` are loaded strictly:** an entry of an unknown kind is an error, not skipped. Only `bytes/` tolerates stray files (it holds a README).
+- **A `to-json` case's input must parse without error** before it is converted, and a `from-json` case with no expected output must report an error, as in xfer-js.

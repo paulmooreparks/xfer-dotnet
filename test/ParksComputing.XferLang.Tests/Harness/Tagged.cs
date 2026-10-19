@@ -12,8 +12,8 @@ namespace ParksComputing.XferLang.Tests.Harness;
 internal static class Tagged
 {
     /// <summary>
-    /// The member names of every object in the tree, in the order a depth-first walk meets the
-    /// objects, each object's names in order. Two trees have the same member order exactly when
+    /// The member names of every XferLang object in the tree, in the order a depth-first walk meets
+    /// the objects, each object's names in order. Two trees have the same member order exactly when
     /// these lists are equal. Iterative, as every walk in this project must be.
     /// </summary>
     public static IReadOnlyList<string> MemberOrder(JsonNode root)
@@ -26,11 +26,20 @@ internal static class Tagged
             JsonNode node = stack.Pop();
             if (node is JsonObject obj)
             {
-                order.Add("{");
+                // Only the members of an XferLang object matter: {"type":"object","value":{...}}.
+                // The order of the wrapper's own keys (type, value, annotations) is not specified.
+                if (obj["type"] is JsonValue type && type.TryGetValue(out string? kind) && kind == "object" && obj["value"] is JsonObject members)
+                {
+                    order.Add("{");
+                    foreach (KeyValuePair<string, JsonNode?> member in members)
+                    {
+                        order.Add(member.Key);
+                    }
+                }
+
                 var children = new List<JsonNode>();
                 foreach (KeyValuePair<string, JsonNode?> member in obj)
                 {
-                    order.Add(member.Key);
                     if (member.Value is not null)
                     {
                         children.Add(member.Value);

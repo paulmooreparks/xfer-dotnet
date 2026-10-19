@@ -91,9 +91,9 @@ internal static partial class SuiteCases
 
         foreach ((string group, Dictionary<string, Files> stems) in new[]
         {
-            ("valid", Group(ReadArchive("valid.txtar"), MainSuffixes)),
-            ("invalid", Group(ReadArchive("invalid.txtar"), MainSuffixes)),
-            ("bytes", Group(ReadBytes(), MainSuffixes)),
+            ("valid", Group(ReadArchive("valid.txtar"), MainSuffixes, strict: true)),
+            ("invalid", Group(ReadArchive("invalid.txtar"), MainSuffixes, strict: true)),
+            ("bytes", Group(ReadBytes(), MainSuffixes, strict: false)),
         })
         {
             foreach ((string stem, Files files) in stems)
@@ -104,14 +104,14 @@ internal static partial class SuiteCases
             }
         }
 
-        foreach ((string stem, Files files) in Group(ReadArchive("to-json.txtar"), ToJsonSuffixes))
+        foreach ((string stem, Files files) in Group(ReadArchive("to-json.txtar"), ToJsonSuffixes, strict: true))
         {
             string id = $"to-json/{stem}";
             Claim(id);
             loaded.ToJson.Add(MakeToJson(id, files));
         }
 
-        foreach ((string stem, Files files) in Group(ReadArchive("from-json.txtar"), FromJsonSuffixes))
+        foreach ((string stem, Files files) in Group(ReadArchive("from-json.txtar"), FromJsonSuffixes, strict: true))
         {
             string id = $"from-json/{stem}";
             Claim(id);
@@ -247,7 +247,7 @@ internal static partial class SuiteCases
         }
     }
 
-    private static Dictionary<string, Files> Group(IEnumerable<KeyValuePair<string, byte[]>> entries, string[] suffixes)
+    private static Dictionary<string, Files> Group(IEnumerable<KeyValuePair<string, byte[]>> entries, string[] suffixes, bool strict)
     {
         var stems = new Dictionary<string, Files>(StringComparer.Ordinal);
         foreach ((string name, byte[] content) in entries)
@@ -255,7 +255,14 @@ internal static partial class SuiteCases
             string? suffix = suffixes.FirstOrDefault(s => name.EndsWith(s, StringComparison.Ordinal));
             if (suffix is null)
             {
-                continue; // README and the like
+                // The archives hold only cases, so an entry of an unknown kind (a new option, say) must
+                // not be silently ignored. The bytes directory also holds a README.
+                if (strict)
+                {
+                    throw new InvalidDataException($"suite: unexpected entry {name}");
+                }
+
+                continue;
             }
 
             string stem = name[..^suffix.Length];

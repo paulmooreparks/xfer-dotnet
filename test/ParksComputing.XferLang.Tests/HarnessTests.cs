@@ -59,13 +59,6 @@ public class HarnessTests
     }
 
     [Fact]
-    public void EveryCaseIdHasAKnownGroup()
-    {
-        string[] groups = ["valid/", "invalid/", "bytes/", "to-json/", "from-json/"];
-        Assert.All(SuiteCases.AllIds, id => Assert.Contains(groups, g => id.StartsWith(g, StringComparison.Ordinal)));
-    }
-
-    [Fact]
     public void ByteLevelCasesKeepTheirBytes()
     {
         // These files exist to protect bytes that an editor or version control would change.
@@ -100,6 +93,7 @@ public class HarnessTests
         string? listed = ExpectedFailures.All.FirstOrDefault();
         if (listed is null)
         {
+            Assert.Skip("expected-failures.txt is empty");
             return;
         }
 
@@ -119,6 +113,36 @@ public class HarnessTests
         Assert.False(Tagged.Equal(a, reordered));
         Assert.False(Tagged.Equal(a, different));
         Assert.False(Tagged.Equal(a, null));
+    }
+
+    [Fact]
+    public void TaggedMemberOrderIgnoresTheWrapperKeysAndSeesOnlyObjectMembers()
+    {
+        JsonNode a = JsonNode.Parse("""{"annotations":[{"name":"id","value":{"type":"string","value":"k"}}],"type":"integer","value":"1"}""")!;
+        JsonNode b = JsonNode.Parse("""{"type":"integer","value":"1","annotations":[{"value":{"value":"k","type":"string"},"name":"id"}]}""")!;
+        Assert.True(Tagged.Equal(a, b));
+        Assert.Empty(Tagged.MemberOrder(a));
+    }
+
+    [Fact]
+    public void LosslessReconstructionConcatenatesTriviaAndTokensInOrder()
+    {
+        TokenView[] tokens =
+        [
+            new([" ", "</ c />"], "{"),
+            new(["\n"], "}"),
+            new(["\n"], string.Empty),
+        ];
+        Assert.Equal(" </ c />{\n}\n", Lossless.Reconstruct(tokens));
+        Assert.NotEqual("{}", Lossless.Reconstruct(tokens));
+    }
+
+    [Fact]
+    public void NormalizeRemovesTheByteOrderMarkAndConvertsEveryKindOfLineEnding()
+    {
+        byte[] input = [0xEF, 0xBB, 0xBF, (byte)'a', (byte)'\r', (byte)'\n', (byte)'b', (byte)'\r', (byte)'c', (byte)'\n'];
+        Assert.Equal("a\nb\nc\n", Lossless.Normalize(input));
+        Assert.Throws<System.Text.DecoderFallbackException>(() => Lossless.Normalize([0xFF]));
     }
 
     [Fact]

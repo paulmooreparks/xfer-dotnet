@@ -51,8 +51,9 @@ public class ConformanceTests
             ParseOutcome result = Subject.Parse(c.Input);
             Assert.True(result.Ok, Describe(result.Diagnostics));
             Assert.Equal(c.Canonical, result.Canonical);
-            Assert.True(Tagged.Equal(c.Value, result.Tagged), "the value model differs from .value.json, or its member order does");
-            Assert.Equal(result.NormalizedText, result.Reconstructed);
+            Assert.True(Tagged.Equal(c.Value, result.Tagged), "the value model differs from .value.json, or the order of an object's members does");
+            Assert.NotNull(result.Tokens);
+            Assert.Equal(Lossless.Normalize(c.Input), Lossless.Reconstruct(result.Tokens));
             Assert.Equal(c.Canonical, Subject.Canonicalize(c.Canonical));
         });
     }
@@ -83,6 +84,8 @@ public class ConformanceTests
         ExpectedFailures.Run(id, () =>
         {
             ToJsonCase c = ToJsonById[id];
+            ParseOutcome parsed = Subject.Parse(System.Text.Encoding.UTF8.GetBytes(c.Xfer));
+            Assert.True(parsed.Ok, "the input of a to-json case must be a valid document: " + Describe(parsed.Diagnostics));
             ToJsonOutcome result = Subject.ToJson(c.Xfer, c.StringifyBigIntegers);
             Assert.Equal(c.Json, result.Text);
             foreach (string want in c.Codes)
@@ -108,6 +111,7 @@ public class ConformanceTests
             if (c.Xfer is null)
             {
                 Assert.Null(result.Canonical);
+                Assert.True(result.HasError, "a conversion that gives no value must report an error");
             }
             else
             {

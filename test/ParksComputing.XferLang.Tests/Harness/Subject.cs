@@ -6,18 +6,27 @@ namespace ParksComputing.XferLang.Tests.Harness;
 
 internal sealed record DiagnosticInfo(string Code, int Line, int Column);
 
-/// <summary>What the conformance tests need to know about one parse.</summary>
+/// <summary>One token of the lossless tree: the trivia before it, and its own text.</summary>
+internal sealed record TokenView(IReadOnlyList<string> LeadingTrivia, string Text);
+
+/// <summary>
+/// What the conformance tests need to know about one parse. <see cref="Tokens"/> is every token of
+/// the tree in order, ending with the end-of-file token, so that the harness rebuilds the text
+/// itself and does not trust the implementation to say it did.
+/// </summary>
 internal sealed record ParseOutcome(
     bool Ok,
     IReadOnlyList<DiagnosticInfo> Diagnostics,
     string? Canonical,
     JsonNode? Tagged,
-    string? Reconstructed,
-    string? NormalizedText);
+    IReadOnlyList<TokenView>? Tokens);
 
 internal sealed record ToJsonOutcome(string Text, IReadOnlyList<string> Codes);
 
-internal sealed record FromJsonOutcome(string? Canonical, IReadOnlyList<string> Codes);
+/// <param name="Canonical">The canonical form of the converted value, or null when there is no value.</param>
+/// <param name="Codes">The codes of every diagnostic reported.</param>
+/// <param name="HasError">Whether any diagnostic has severity Error.</param>
+internal sealed record FromJsonOutcome(string? Canonical, IReadOnlyList<string> Codes, bool HasError);
 
 /// <summary>
 /// The seam between the conformance tests and the implementation. The tests are written once,
@@ -33,6 +42,7 @@ internal static class Subject
     /// <summary>The canonical form of the text parsed as a document, or null if it does not parse.</summary>
     public static string? Canonicalize(string text) => throw new NotImplementedException("canonical writer (step 6)");
 
+    /// <summary>Converts a document that has already been checked to parse without error.</summary>
     public static ToJsonOutcome ToJson(string xfer, bool stringifyBigIntegers) => throw new NotImplementedException("JSON (step 7)");
 
     public static FromJsonOutcome FromJson(string json) => throw new NotImplementedException("JSON (step 7)");
