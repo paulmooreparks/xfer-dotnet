@@ -468,9 +468,9 @@ public class MapperTests
     }
 
     [Theory]
-    [InlineData("camel", "{firstName \"a\" httpCode 1 explicit 2}")]
-    [InlineData("kebab", "{first-name \"a\" http-code 1 explicit 2}")]
-    [InlineData("snake", "{first_name \"a\" http_code 1 explicit 2}")]
+    [InlineData("camel", "{explicit 2 firstName \"a\" httpCode 1}")]
+    [InlineData("kebab", "{explicit 2 first-name \"a\" http-code 1}")]
+    [InlineData("snake", "{explicit 2 first_name \"a\" http_code 1}")]
     public void AppliesNamingPoliciesBelowTheAttribute(string policy, string expected)
     {
         var options = new XferSerializerOptions
@@ -610,12 +610,21 @@ public class MapperTests
 
         [XferPropertyOrder(-1)]
         public int Zeroth { get; set; }
+
+        public int Alpha { get; set; }
+
+        [XferPropertyOrder(1)]
+        public int Last { get; set; }
     }
 
     [Fact]
-    public void WritesMembersByOrderThenBaseFirst()
+    public void WritesMembersByOrderThenByKeyWhateverTheDeclarationOrder()
     {
-        Assert.Equal("{Zeroth 0 First 1 Second 2}", CollapseSpaces(Write(new Derived { First = 1, Second = 2 }).ReplaceLineEndings(" ")));
+        // Declared Second, Zeroth, Alpha, Last, with First in the base class: the order is never
+        // the declaration order, because reflection does not promise one.
+        Assert.Equal("{Zeroth 0 Alpha 3 First 1 Second 2 Last 4}", Write(new Derived { First = 1, Second = 2, Alpha = 3, Last = 4 }));
+        Assert.Equal("{Age 0 Friend null Name \"Ada\" ReadOnly 0 Tags null}", Write(new Person { Name = "Ada" }));
+        Assert.Equal("{a 1 b 2}", Write(new { b = 2, a = 1 }));
     }
 
     [Fact]
@@ -630,7 +639,7 @@ public class MapperTests
         var holder = new Dictionary<string, object?> { ["p"] = new Point(1, 2), ["m"] = Mode.Dark };
         Assert.Equal("{p {X 1 Y 2} m Dark}", CollapseSpaces(Write(holder).ReplaceLineEndings(" ")));
         // A member declared as a base class is written by its runtime type.
-        Assert.Equal("{b {Zeroth 0 First 1 Second 2}}", CollapseSpaces(Write(new Dictionary<string, Base> { ["b"] = new Derived { First = 1, Second = 2 } }).ReplaceLineEndings(" ")));
+        Assert.Equal("{b {Zeroth 0 Alpha 0 First 1 Second 2 Last 0}}", CollapseSpaces(Write(new Dictionary<string, Base> { ["b"] = new Derived { First = 1, Second = 2 } }).ReplaceLineEndings(" ")));
     }
 
     [Fact]
@@ -659,7 +668,7 @@ public class MapperTests
     public void HonoursIgnoreConditions()
     {
         var value = new Ignorable { Hidden = 5 };
-        Assert.Equal("{Text null Number 0 Maybe null}", CollapseSpaces(Write(value).ReplaceLineEndings(" ")));
+        Assert.Equal("{Maybe null Number 0 Text null}", CollapseSpaces(Write(value).ReplaceLineEndings(" ")));
         Assert.Equal("{Number 0}", CollapseSpaces(Write(value, new XferSerializerOptions { DefaultIgnoreCondition = XferIgnoreCondition.WhenWritingNull }).ReplaceLineEndings(" ")));
         Assert.Equal("{}", CollapseSpaces(Write(value, new XferSerializerOptions { DefaultIgnoreCondition = XferIgnoreCondition.WhenWritingDefault }).ReplaceLineEndings(" ")));
         Assert.Equal(0, Read<Ignorable>("{Hidden 5}")!.Hidden);

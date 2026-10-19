@@ -49,9 +49,9 @@ public sealed class XferSymbolAttribute : Attribute
 }
 
 /// <summary>
-/// The order a member is written in: members are written by ascending order, then in the order
-/// reflection gives them (which no documentation fixes), so a type that must write its members in
-/// a fixed order gives each one an order.
+/// The order a member is written in: members are written by ascending order, and members of
+/// equal order by key, ordinally. Without this attribute every member is at 0, so a type's
+/// members are written in key order on every runtime.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
 public sealed class XferPropertyOrderAttribute : Attribute
