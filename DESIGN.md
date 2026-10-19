@@ -568,3 +568,14 @@ Review of step 5 (Opus, cold): no disagreement with xfer-js on trees, diagnostic
 - **The fixture now covers** non-ASCII and emoji keys longer than 24 units, CR and CRLF, a byte order mark mid-document, the head versions `01`, `1_0`, `0x1`, `0`, `-1` and `"1"`, and tight limits on generated documents as well as on token soup.
 - **Smaller:** the parser reuses its skipped-items list instead of allocating one per pair.
 - **Tooling:** the fixture bundles are built with `tsdown --no-config`. Without it tsdown also runs xfer-js's own two builds into the same directory, and the bundle was intermittently corrupt.
+
+### Step 6: the canonical writer
+
+Done 2026-10-19 (Sonnet). `Writing/StringDelimiters.cs` ports xfer-js `src/strings.ts` (specification 6, rule 10, including the choice past the run limit) and `Writing/XferWriter.cs` ports `src/canonical.ts` with the validation of specification 9 for a value built by a program. All 48 valid suite cases now pass, so `expected-failures.txt` holds only the 54 JSON cases (step 7). 347 tests.
+
+- **Oracle:** the parser fixture now carries xfer-js's canonical form for every accepted document (about 3,400 of them, under default and tight limits), and the .NET writer must match it byte for byte and be stable when its output is parsed and written again.
+- **Properties:** 30,000 random strings from a quote-and-hash-heavy piece set, and every string over the alphabet `"`, `#`, `a` up to length ten (88,000 strings), are written and parsed back to themselves; a document is embedded in a string six levels deep and read back at each level.
+- **Errors:** a value no document could hold is an `ArgumentException` (string or key with U+000D or a lone surrogate; a symbol that is not a bare name or is a keyword; a number or temporal whose spelling is not exactly one token of its kind or does not denote its value; an annotation other than a scalar `id`, `tag` or `lang`, with a nested annotation, a wrong-kind value, or a repeated `id`). A value nested past the depth limit is an `XferException` with `XFER0602`, and output past the document size limit one with `XFER0601`. A parse result with an error is refused with its own diagnostics.
+- **Size is counted in UTF-8 bytes** (xfer-js counts UTF-16 units); the two agree for ASCII and differ only near the limit for other text.
+- **The checks for a parsed result are skipped** (it is trusted), except that a symbol is always checked, as in xfer-js.
+- **`Compact`** is not written: the design dropped it (section 9.3).

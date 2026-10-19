@@ -274,6 +274,13 @@ ParksComputing.XferLang.XferValueKind.Sequence = 1 -> ParksComputing.XferLang.Xf
 ParksComputing.XferLang.XferValueKind.String = 2 -> ParksComputing.XferLang.XferValueKind
 ParksComputing.XferLang.XferValueKind.Symbol = 7 -> ParksComputing.XferLang.XferValueKind
 ParksComputing.XferLang.XferValueKind.Time = 9 -> ParksComputing.XferLang.XferValueKind
+ParksComputing.XferLang.XferWriteOptions
+ParksComputing.XferLang.XferWriteOptions.<Clone>$() -> ParksComputing.XferLang.XferWriteOptions!
+ParksComputing.XferLang.XferWriteOptions.Equals(ParksComputing.XferLang.XferWriteOptions? other) -> bool
+ParksComputing.XferLang.XferWriteOptions.Limits.get -> ParksComputing.XferLang.XferLimits!
+ParksComputing.XferLang.XferWriteOptions.Limits.init -> void
+ParksComputing.XferLang.XferWriteOptions.XferWriteOptions() -> void
+ParksComputing.XferLang.XferWriter
 abstract ParksComputing.XferLang.Syntax.XferNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
 abstract ParksComputing.XferLang.XferValue.Kind.get -> ParksComputing.XferLang.XferValueKind
 override ParksComputing.XferLang.Syntax.XferErrorNode.Kind.get -> ParksComputing.XferLang.Syntax.XferNodeKind
@@ -312,6 +319,9 @@ override ParksComputing.XferLang.XferSymbol.Kind.get -> ParksComputing.XferLang.
 override ParksComputing.XferLang.XferTemporal.Kind.get -> ParksComputing.XferLang.XferValueKind
 override ParksComputing.XferLang.XferValue.Equals(object? obj) -> bool
 override ParksComputing.XferLang.XferValue.GetHashCode() -> int
+override ParksComputing.XferLang.XferWriteOptions.Equals(object? obj) -> bool
+override ParksComputing.XferLang.XferWriteOptions.GetHashCode() -> int
+override ParksComputing.XferLang.XferWriteOptions.ToString() -> string!
 static ParksComputing.XferLang.Syntax.XferSkippedSyntax.operator !=(ParksComputing.XferLang.Syntax.XferSkippedSyntax left, ParksComputing.XferLang.Syntax.XferSkippedSyntax right) -> bool
 static ParksComputing.XferLang.Syntax.XferSkippedSyntax.operator ==(ParksComputing.XferLang.Syntax.XferSkippedSyntax left, ParksComputing.XferLang.Syntax.XferSkippedSyntax right) -> bool
 static ParksComputing.XferLang.Syntax.XferToken.operator !=(ParksComputing.XferLang.Syntax.XferToken left, ParksComputing.XferLang.Syntax.XferToken right) -> bool
@@ -339,5 +349,10 @@ static ParksComputing.XferLang.XferParseOptions.operator ==(ParksComputing.XferL
 static ParksComputing.XferLang.XferPosition.Origin.get -> ParksComputing.XferLang.XferPosition
 static ParksComputing.XferLang.XferPosition.operator !=(ParksComputing.XferLang.XferPosition left, ParksComputing.XferLang.XferPosition right) -> bool
 static ParksComputing.XferLang.XferPosition.operator ==(ParksComputing.XferLang.XferPosition left, ParksComputing.XferLang.XferPosition right) -> bool
+static ParksComputing.XferLang.XferWriteOptions.operator !=(ParksComputing.XferLang.XferWriteOptions? left, ParksComputing.XferLang.XferWriteOptions? right) -> bool
+static ParksComputing.XferLang.XferWriteOptions.operator ==(ParksComputing.XferLang.XferWriteOptions? left, ParksComputing.XferLang.XferWriteOptions? right) -> bool
+static ParksComputing.XferLang.XferWriter.Canonical(ParksComputing.XferLang.XferParseResult! result, ParksComputing.XferLang.XferWriteOptions? options = null) -> string!
+static ParksComputing.XferLang.XferWriter.Canonical(ParksComputing.XferLang.XferValue! value, ParksComputing.XferLang.XferWriteOptions? options = null) -> string!
+static ParksComputing.XferLang.XferWriter.Canonical(ParksComputing.XferLang.XferValue! value, System.IO.TextWriter! writer, ParksComputing.XferLang.XferWriteOptions? options = null) -> void
 ~override ParksComputing.XferLang.XferPosition.Equals(object obj) -> bool
 ~override ParksComputing.XferLang.XferPosition.ToString() -> string

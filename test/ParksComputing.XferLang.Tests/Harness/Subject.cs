@@ -43,12 +43,16 @@ internal static class Subject
         XferParseResult result = XferDocument.Parse(input);
         DiagnosticInfo[] diagnostics = [.. result.Diagnostics.Select(d => new DiagnosticInfo(d.CodeText, d.Start.Line, d.Start.Column))];
         JsonNode? tagged = result.Ok ? TaggedWriter.ToTaggedDocument(result) : null;
-        string? canonical = null; // the canonical writer is step 6
+        string? canonical = result.Ok ? XferWriter.Canonical(result) : null;
         return new ParseOutcome(result.Ok, diagnostics, canonical, tagged, TaggedWriter.TokensInOrder(result.Tree));
     }
 
     /// <summary>The canonical form of the text parsed as a document, or null if it does not parse.</summary>
-    public static string? Canonicalize(string text) => throw new NotImplementedException("canonical writer (step 6)");
+    public static string? Canonicalize(string text)
+    {
+        XferParseResult result = XferDocument.Parse(text);
+        return result.Ok ? XferWriter.Canonical(result) : null;
+    }
 
     /// <summary>Converts a document that has already been checked to parse without error.</summary>
     public static ToJsonOutcome ToJson(string xfer, bool stringifyBigIntegers) => throw new NotImplementedException("JSON (step 7)");

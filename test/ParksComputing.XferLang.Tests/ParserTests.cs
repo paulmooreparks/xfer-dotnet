@@ -97,6 +97,28 @@ public class ParserTests
             return $"value {value?.ToJsonString()}, expected {expected["value"]?.ToJsonString()}";
         }
 
+        // The canonical form must be byte for byte the reference implementation's, and reading it
+        // back and writing it again must change nothing.
+        string? wantCanonical = expected["canonical"]?.GetValue<string>();
+        if (result.Ok)
+        {
+            string got = XferWriter.Canonical(result, new XferWriteOptions { Limits = options.Limits });
+            if (got != wantCanonical)
+            {
+                return $"canonical {JsonSerializer.Serialize(got)}, expected {JsonSerializer.Serialize(wantCanonical)}";
+            }
+
+            XferParseResult again = XferDocument.Parse(got, options);
+            if (!again.Ok || XferWriter.Canonical(again, new XferWriteOptions { Limits = options.Limits }) != got)
+            {
+                return $"canonical form {JsonSerializer.Serialize(got)} is not stable";
+            }
+        }
+        else if (wantCanonical is not null)
+        {
+            return "expected a canonical form for a document the parser rejected";
+        }
+
         return null;
     }
 

@@ -18,7 +18,7 @@ if (!bundle) {
   process.exit(2);
 }
 const load = (name) => import(pathToFileURL(join(bundle, name)).href);
-const { parse } = await load("src/index.js");
+const { parse, canonical } = await load("src/index.js");
 const { generate, renderDocument, randomSeparator } = await load("test/generator.js");
 const { toTaggedDocument } = await load("test/tagged.js");
 const { mulberry32 } = await load("test/random.js");
@@ -73,6 +73,7 @@ function caseOf(text, label, limits) {
     diagnostics: result.diagnostics.map((d) => [d.code, d.start.offset, d.start.line, d.start.column, d.end.offset, d.end.line, d.end.column, d.message]),
     tree: shape(result.tree),
     value: result.ok ? toTaggedDocument(result) : null,
+    canonical: result.ok ? canonical(result, limits === undefined ? undefined : { limits }) : null,
   };
 }
 
