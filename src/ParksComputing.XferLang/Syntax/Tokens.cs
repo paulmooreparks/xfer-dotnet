@@ -59,24 +59,55 @@ internal enum TriviaKind : byte
 /// <see cref="Start"/> and <see cref="Length"/> are in bytes of the normalized text, and a
 /// position is resolved from the line map when someone asks for it.
 /// </summary>
-/// <param name="Kind">The kind.</param>
-/// <param name="Start">The byte offset of the token's first byte.</param>
-/// <param name="Length">The length in bytes, delimiters included.</param>
-/// <param name="FirstTrivia">The index in the trivia array of the first trivia before the token.</param>
-/// <param name="TriviaCount">How many trivia come before the token.</param>
-/// <param name="Form">For a string: its delimiter form.</param>
-/// <param name="Run">For a string: the run length of its delimiter (1 for <c>""</c>).</param>
-/// <param name="Keyword">For a keyword: which.</param>
-internal readonly record struct Token(
-    TokenKind Kind,
-    int Start,
-    int Length,
-    int FirstTrivia,
-    int TriviaCount,
-    StringForm Form = StringForm.None,
-    int Run = 0,
-    Keyword Keyword = Keyword.None)
+internal readonly struct Token
 {
+    // Declared ints first and the three byte-sized fields last, so the struct is 24 bytes
+    // (a test checks it); declared in parameter order it would be 32.
+    private readonly int start;
+    private readonly int length;
+    private readonly int firstTrivia;
+    private readonly int triviaCount;
+    private readonly int run;
+    private readonly TokenKind kind;
+    private readonly StringForm form;
+    private readonly Keyword keyword;
+
+    public Token(
+        TokenKind kind,
+        int start,
+        int length,
+        int firstTrivia,
+        int triviaCount,
+        StringForm form = StringForm.None,
+        int run = 0,
+        Keyword keyword = Keyword.None)
+    {
+        this.kind = kind;
+        this.start = start;
+        this.length = length;
+        this.firstTrivia = firstTrivia;
+        this.triviaCount = triviaCount;
+        this.form = form;
+        this.run = run;
+        this.keyword = keyword;
+    }
+
+    public TokenKind Kind => kind;
+
+    public int Start => start;
+
+    public int Length => length;
+
+    public int FirstTrivia => firstTrivia;
+
+    public int TriviaCount => triviaCount;
+
+    public StringForm Form => form;
+
+    public int Run => run;
+
+    public Keyword Keyword => keyword;
+
     /// <summary>The byte offset just after the token.</summary>
     public int End => Start + Length;
 

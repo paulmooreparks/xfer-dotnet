@@ -60,8 +60,8 @@ internal sealed class Lexer
     private readonly byte[] text;
     private readonly XferLimits limits;
     private readonly List<PendingDiagnostic> diagnostics;
-    private readonly List<Token> tokens = [];
-    private readonly List<Trivia> trivia = [];
+    private readonly List<Token> tokens;
+    private readonly List<Trivia> trivia;
     private int index;
 
     private Lexer(byte[] text, XferLimits limits, List<PendingDiagnostic> diagnostics)
@@ -69,6 +69,13 @@ internal sealed class Lexer
         this.text = text;
         this.limits = limits;
         this.diagnostics = diagnostics;
+
+        // Sized for a typical document (about one token and one piece of trivia per four bytes),
+        // so the lists rarely grow; growth by doubling leaves the old arrays as garbage, which
+        // was most of the lexer's allocation before this.
+        int estimate = Math.Min((text.Length / 4) + 16, 1 << 24);
+        tokens = new List<Token>(estimate);
+        trivia = new List<Trivia>(estimate);
     }
 
     /// <summary>Lexes a whole normalized text, through the end-of-file token.</summary>

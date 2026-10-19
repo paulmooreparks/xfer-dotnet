@@ -30,8 +30,9 @@ public class LexerTests
     {
         var pending = new List<PendingDiagnostic>();
         TokenStream stream = Lexer.Tokenize(normalized, limits ?? Defaults, pending);
-        NormalizeResult map = Normalizer.Normalize(normalized, XferLimits.Default with { DocumentBytes = int.MaxValue });
-        return new Lexed(normalized, stream, DiagnosticResolver.Resolve(pending, map.Lines));
+        // The text is already normalized, so its line map is made directly; normalizing it again
+        // would drop a leading U+FEFF, which here is content, and shift every position.
+        return new Lexed(normalized, stream, DiagnosticResolver.Resolve(pending, LineMap.Create(normalized)));
     }
 
     private static string Reconstruct(Lexed lexed)
@@ -123,13 +124,19 @@ public class LexerTests
             }
         }
 
-        Assert.True(cases > 6000, $"only {cases} fixture cases");
         Assert.True(failures.Count == 0, string.Join("\n", failures));
+        Assert.True(cases > 6000, $"only {cases} fixture cases");
     }
 
     private static string? Compare(string text, JsonElement expected)
     {
-        Lexed lexed = Lex(text);
+        XferLimits limits = Defaults;
+        if (expected.GetProperty("limits") is { ValueKind: JsonValueKind.Object } tight)
+        {
+            limits = new XferLimits { RunLength = tight.GetProperty("runLength").GetInt32(), TokenBytes = tight.GetProperty("tokenBytes").GetInt32() };
+        }
+
+        Lexed lexed = Lex(text, limits);
         JsonElement[] tokens = expected.GetProperty("tokens").EnumerateArray().ToArray();
         if (tokens.Length != lexed.Stream.Tokens.Count)
         {
@@ -175,6 +182,17 @@ public class LexerTests
             else if (got.Kind == TokenKind.Keyword && KeywordName(got.Keyword) != want[4].GetString())
             {
                 return $"token {i}: keyword {KeywordName(got.Keyword)}, expected {want[4]}";
+            }
+
+            // Fields that belong to another kind of token must be empty.
+            if (got.Kind != TokenKind.Keyword && got.Keyword != Keyword.None)
+            {
+                return $"token {i}: a {KindName(got.Kind)} with keyword {got.Keyword}";
+            }
+
+            if (got.Kind != TokenKind.String && (got.Form != StringForm.None || got.Run != 0))
+            {
+                return $"token {i}: a {KindName(got.Kind)} with string form {got.Form} run {got.Run}";
             }
         }
 
@@ -361,6 +379,33 @@ public class LexerTests
             Lexed lexed = Lex(text.ToString());
             Assert.Equal(text.ToString(), Reconstruct(lexed));
         }
+    }
+
+    [Fact]
+    public void TheFixtureExercisesTheLengthLimits()
+    {
+        string all = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "fixtures", "lexer.jsonl"));
+        Assert.Contains("\"XFER0603\"", all, StringComparison.Ordinal);
+        Assert.Contains("\"XFER0604\"", all, StringComparison.Ordinal);
+        Assert.Contains("\"limits\":{", all, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ATokenIsTwentyFourBytes()
+    {
+        Assert.Equal(24, System.Runtime.CompilerServices.Unsafe.SizeOf<Token>());
+        Assert.Equal(16, System.Runtime.CompilerServices.Unsafe.SizeOf<Trivia>());
+    }
+
+    [Fact]
+    public void LexingATypicalDocumentAllocatesLittleMoreThanItsTokens()
+    {
+        byte[] text = Encoding.UTF8.GetBytes(string.Concat(Enumerable.Repeat("{ name \"Alice\" age 30 tags [ a b c ] when 2025-08-01T09:30:00Z }\n", 60_000)));
+        Lexer.Tokenize(text, Defaults, []); // warm up
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        Lexer.Tokenize(text, Defaults, []);
+        long perByte = (GC.GetAllocatedBytesForCurrentThread() - before) / text.Length;
+        Assert.True(perByte <= 12, $"{perByte} bytes per input byte");
     }
 
     [Fact]

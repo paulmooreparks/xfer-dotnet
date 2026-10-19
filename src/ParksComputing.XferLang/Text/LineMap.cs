@@ -21,6 +21,30 @@ internal sealed class LineMap
         this.lineStarts = lineStarts;
     }
 
+    /// <summary>The line map of a normalized text (LF line endings).</summary>
+    public static LineMap Create(byte[] text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        return new LineMap(text, LineStarts(text));
+    }
+
+    private static int[] LineStarts(byte[] text)
+    {
+        // Count first and allocate once: a growing list would hold about three times the memory
+        // at the specification's minimum document size.
+        var starts = new int[text.AsSpan().Count((byte)0x0A) + 1];
+        int line = 1;
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (text[i] == 0x0A)
+            {
+                starts[line++] = i + 1;
+            }
+        }
+
+        return starts;
+    }
+
     /// <summary>The number of lines: one more than the number of line feeds.</summary>
     public int LineCount => lineStarts.Length;
 

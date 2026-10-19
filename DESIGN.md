@@ -535,3 +535,11 @@ Done 2026-10-19 (Opus). `Syntax/Lexer.cs` is a port of xfer-js `src/lexer.ts` ov
 - **The "ran on" error token** that xfer-js queues for the next call is appended directly after its scalar here, with no trivia, since the whole stream is built at once.
 - **Inputs are trusted to be normalized:** valid UTF-8 with LF line endings. The lexer is internal and is only ever given `NormalizeResult.Text`.
 - No conformance case leaves `expected-failures.txt` in this step, because `Subject.Parse` needs the parser (step 5).
+
+Review of step 4 (Opus, cold): no behavioural difference from xfer-js was found in 240,000 further random texts over a much wider alphabet (every class of non-ASCII and control character, astral characters beside every ASCII decision) and 172 hand-written edge cases, under default and tight limits. Three findings, all applied:
+
+- **`Token` was 32 bytes.** Its fields are now declared ints first and bytes last, which makes it 24 bytes; a test pins the size.
+- **The lexer allocated about 31 bytes per input byte on a typical document,** two thirds of it arrays left behind when its lists doubled. The lists are now sized for one token per four bytes before lexing, and a test requires a typical document to allocate no more than 12 bytes per input byte in the lexer. A document of one-byte tokens (`[[[[`) still grows the list; the parser's memory measurement in step 5 will say whether a chunked buffer is worth it.
+- **The fixture never exercised the length limits.** One random case in five now runs under tight limits (recorded in the fixture line), and the alphabet covers every class of non-ASCII and control character. The fixture now holds 670 `XFER0603` and 33 `XFER0604` diagnostics, and the comparison also requires the fields that belong to another kind of token to be empty.
+
+The first regenerated run failed on every text that began with U+FEFF. The test helper had built its line map by normalizing the already normalized text again, which removed the U+FEFF (content at that point) and shifted every position by three bytes; the lexer was right. `LineMap.Create` now builds a map from normalized text directly.

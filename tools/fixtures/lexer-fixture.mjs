@@ -29,9 +29,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
 const limits = resolveLimits();
 
-function caseOf(text, label) {
+function caseOf(text, label, tight) {
   const diagnostics = [];
-  const tokens = tokenize(text, limits, diagnostics);
+  const tokens = tokenize(text, tight === undefined ? limits : resolveLimits(tight), diagnostics);
   const ordered = diagnostics
     .map((d, i) => ({ d, i }))
     .sort((a, b) => a.d.start.offset - b.d.start.offset || a.i - b.i)
@@ -39,6 +39,7 @@ function caseOf(text, label) {
   return {
     label,
     text,
+    limits: tight ?? null,
     tokens: tokens.map((t) => {
       const out = [t.kind, t.start.offset, t.end.offset, t.leading.map((x) => [x.kind, x.start.offset, x.end.offset, x.run ?? 0])];
       if (t.kind === "string") {
@@ -68,6 +69,17 @@ const alphabet = [
   ..."{}[]<>!/\"#-._:,+~? \n\t01279axeETZn",
   "inf", "true", "é", "😀", " ", " ", "\u0085", "</", "<!", "!>", "\"\"", "\"\"\"", "#\"", "\"#", "##",
   "2025-08-01", "09:30:00", "T09:30:00Z", "+08:00", "0x", "0b", "0o", "1_0", "e5", "-inf", "nan", "//>", "\f",
+  // Every class of non-ASCII and control character, written as escapes so no editor alters them.
+  "\u0080", "ÿ", "߿", "ࠀ", " ", " ", "​", " ", "‮", "⁦", "　",
+  "퟿", "", "﻿", "�", "￿", "\u{10000}", "\u{10ffff}", "\u{e0001}", "\u0001", "\u001f", "\u007f",
+  "\\", "'", "(", ")", "@", "$", "%", "^", "&", "*", "=", "|", "`", ";",
+];
+
+// One random case in five runs under tight limits, so the length-limit diagnostics are compared too.
+const tightLimits = [
+  { runLength: 1, tokenBytes: 1 },
+  { runLength: 2, tokenBytes: 3 },
+  { runLength: 3, tokenBytes: 2 },
 ];
 
 const cases = [];
@@ -117,7 +129,8 @@ for (let run = 0; run < 6000; run++) {
   for (let i = 0; i < pieces; i++) {
     text += alphabet[Math.floor(random() * alphabet.length)];
   }
-  cases.push(caseOf(text, `random:${run}`));
+  const tight = run % 5 === 4 ? tightLimits[Math.floor(run / 5) % tightLimits.length] : undefined;
+  cases.push(caseOf(text, `random:${run}`, tight));
 }
 
 const out = join(root, "test", "ParksComputing.XferLang.Tests", "fixtures", "lexer.jsonl");
