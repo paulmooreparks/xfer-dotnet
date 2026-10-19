@@ -25,6 +25,12 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <DebugType>embedded</DebugType>
     <IncludeSymbols>false</IncludeSymbols>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
+
+  <!-- Items are evaluated after every property, so IsPackable here is the project's own. -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
 
 </Project>

@@ -72,9 +72,11 @@ public enum XferTemporalKind
 public sealed record XferAnnotation(string Name, XferValue Value);
 
 /// <summary>
-/// A value of the value model (specification 9): what a document says, without its spelling,
-/// trivia or layout. Values are immutable. Equality is structural, annotations included, and is
-/// computed without recursion, so it is safe at any depth.
+/// A value of the value model (specification 9): what a document says, without its trivia,
+/// layout or string delimiters. A number or temporal keeps its spelling, so <c>0xFF</c> and
+/// <c>0xff</c> are different values, as are <c>1.5</c> and <c>1.50</c>. Values are immutable.
+/// Equality is structural, annotations and number spellings included, and is computed without
+/// recursion, so it is safe at any depth.
 /// </summary>
 /// <remarks>
 /// A program may build values directly. A value that no document could hold (specification 9,

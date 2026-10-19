@@ -203,6 +203,7 @@ public class ParserTests
     }
 
     [Fact]
+    [Trait("Category", "Timing")]
     public void HostileShapesParseInLinearTime()
     {
         string[] inputs =
@@ -220,11 +221,12 @@ public class ParserTests
             XferParseResult result = XferDocument.Parse(input, new XferParseOptions { Limits = new XferLimits { Depth = 1_000_000 } });
             timer.Stop();
             Assert.Equal(result.Tree.Text, Lossless.Reconstruct(TaggedWriter.TokensInOrder(result.Tree)));
-            Assert.True(timer.ElapsedMilliseconds < 5_000, $"{input[..12]}...: {timer.ElapsedMilliseconds} ms");
+            Assert.True(timer.ElapsedMilliseconds < Timing.Scale * 5_000, $"{input[..12]}...: {timer.ElapsedMilliseconds} ms");
         }
     }
 
     [Fact]
+    [Trait("Category", "Timing")]
     public void AVeryLongIntegerIsNotConvertedUntilItsValueIsAskedFor()
     {
         string digits = "1" + new string('7', 4_000_000);
@@ -232,7 +234,7 @@ public class ParserTests
         XferParseResult result = XferDocument.Parse("[ " + digits + " " + digits + " ]");
         timer.Stop();
         Assert.True(result.Ok);
-        Assert.True(timer.ElapsedMilliseconds < 1_000, $"parse took {timer.ElapsedMilliseconds} ms");
+        Assert.True(timer.ElapsedMilliseconds < Timing.Scale * 1_000, $"parse took {timer.ElapsedMilliseconds} ms");
         var items = (XferSequence)result.Value!;
         Assert.Equal(items[0], items[1]); // equal by spelling, without converting either
         Assert.Equal(digits, ((XferInteger)items[0]).Lexeme);

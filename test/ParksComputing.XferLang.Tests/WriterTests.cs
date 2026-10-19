@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Text;
 using ParksComputing.XferLang.Syntax;
 using ParksComputing.XferLang.Writing;
+using ParksComputing.XferLang.Tests.Harness;
 using Xunit;
 
 namespace ParksComputing.XferLang.Tests;
@@ -318,6 +319,7 @@ public class WriterTests
     }
 
     [Fact]
+    [Trait("Category", "Timing")]
     public void AParsedIntegerRebuiltIntoANewValueIsNotConvertedTwice()
     {
         string digits = "1" + new string('7', 2_000_000);
@@ -325,7 +327,7 @@ public class WriterTests
         var timer = System.Diagnostics.Stopwatch.StartNew();
         string text = XferWriter.Canonical(new XferSequence([parsed, parsed]));
         timer.Stop();
-        Assert.True(timer.ElapsedMilliseconds < 1_000, $"{timer.ElapsedMilliseconds} ms");
+        Assert.True(timer.ElapsedMilliseconds < Timing.Scale * 1_000, $"{timer.ElapsedMilliseconds} ms");
         Assert.Contains(digits, text, StringComparison.Ordinal);
 
         // A value that has been read is checked against its spelling, which still agrees.

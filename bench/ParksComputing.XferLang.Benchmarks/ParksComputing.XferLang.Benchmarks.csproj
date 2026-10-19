@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- BenchmarkDotNet; run by hand, not in CI (DESIGN.md section 2). Results go in section 17. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CA1822;CA1515;CA1001;CA1812</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <!-- The legacy 0.x library, to compare with on the parkscomputing.com documents. -->
+    <PackageReference Include="ParksComputing.Xfer.Lang" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/ParksComputing.XferLang/ParksComputing.XferLang.csproj" />
+    <Compile Include="../../test/ParksComputing.XferLang.Tests/Engine/NavNodes.cs" Link="NavNodes.cs" />
+    <Content Include="../../test/ParksComputing.XferLang.Tests/fixtures/*.xfer" Link="fixtures/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

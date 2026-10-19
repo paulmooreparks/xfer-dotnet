@@ -1,0 +1,59 @@
+name: release
+
+# Publishes both packages to NuGet when a tag v<version> is pushed (DESIGN.md section 13). NuGet
+# trusted publishing exchanges this workflow's OIDC token for a short-lived API key, so no key is
+# stored. The policy on nuget.org matches this file's name, which is release.yaml as in xfer-js.
+# The repository variable NUGET_USER holds the nuget.org account that owns the policy.
+
+on:
+  push:
+    tags: ["v*"]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: nuget
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      # The tag must be the version the packages are built with, so a release cannot ship under
+      # a name that is not the one inside it.
+      - name: Check the tag against the version
+        shell: bash
+        run: |
+          version="$(dotnet msbuild src/ParksComputing.XferLang -getProperty:Version)"
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME is not v$version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - run: dotnet build -c Release -warnaserror
+      - run: dotnet test --no-build -c Release
+      - run: dotnet pack --no-build -c Release -o artifacts
+
+      - name: Log in to NuGet with trusted publishing
+        id: nuget
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push to NuGet
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json
+
+      - name: Create the GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=""
+          case "$VERSION" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" artifacts/*.nupkg --title "$GITHUB_REF_NAME" --generate-notes $prerelease

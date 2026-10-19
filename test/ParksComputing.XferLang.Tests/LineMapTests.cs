@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text;
 using ParksComputing.XferLang.Text;
+using ParksComputing.XferLang.Tests.Harness;
 using Xunit;
 
 namespace ParksComputing.XferLang.Tests;
@@ -96,6 +97,7 @@ public class LineMapTests
     }
 
     [Fact]
+    [Trait("Category", "Timing")]
     public void ResolvingManyPositionsOnOneVeryLongLineIsLinearNotQuadratic()
     {
         // 200,000 faults on a single 2 MB line: one scan per fault would be 4e11 byte visits.
@@ -106,6 +108,6 @@ public class LineMapTests
         XferPosition[] resolved = map.Resolve(offsets);
         timer.Stop();
         Assert.Equal(new XferPosition(1_999_990, 1, 1_999_991), resolved[^1]);
-        Assert.True(timer.ElapsedMilliseconds < 2_000, $"took {timer.ElapsedMilliseconds} ms");
+        Assert.True(timer.ElapsedMilliseconds < Timing.Scale * 2_000, $"took {timer.ElapsedMilliseconds} ms");
     }
 }

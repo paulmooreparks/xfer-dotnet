@@ -13,7 +13,7 @@
     <PackageReference Include="FsCheck.Xunit.v3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.runner.visualstudio" />
-    <PackageReference Include="coverlet.collector" PrivateAssets="all" />
+    <PackageReference Include="coverlet.MTP" />
     <PackageReference Include="ParksComputing.Xfer.Lang" />
   </ItemGroup>
 
