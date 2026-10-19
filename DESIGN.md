@@ -448,6 +448,8 @@ The parkscomputing.com documents are test fixtures: step 8 copies `sitenav.xfer`
 
 A test project (`DifferentialTests`, skipped unless `XFER_JS_CLI` points at a built xfer-js `dist/cli.mjs` and `node` is on the path) generates documents with the ported generator and fuzzed texts, runs both CLIs on each (`validate --json`, `fmt`, `to-json`, `from-json`), and requires identical exit codes, identical standard output, and identical diagnostic codes and positions. CI runs it with xfer-js checked out at the version pinned in a file in this repository. This is the ROADMAP's requirement that the two implementations be run against each other.
 
+As built (step 9), the pin is `xfer-js.version`, a release of the npm package `xferlang`, which CI installs, rather than a checkout. Standard error is compared byte for byte as well, apart from two differences the design allows: the operating system's reason a file cannot be read or written, and the position of `XFER0701`, which this implementation gives at the first invalid byte and xfer-js at the origin (section 16, item 2). CI sets `XFER_DIFFERENTIAL_REQUIRED`, which turns a missing xfer-js CLI from a skip into a failure.
+
 ### 12.7 Coverage
 
 Line coverage of `src/ParksComputing.XferLang` at least 95%, enforced in CI.
@@ -646,3 +648,15 @@ Review of step 8 (Opus, cold): the type cache and option freezing held under con
 - **A graph that shares references ran without bound.** A 40-level diamond was still running after 20 s in review, and reached 76 GB in this session's first fix, because `Limits.Elements` defaults to unlimited. The fix is the output-size bound of section 10.5, and cycles are now detected exactly.
 - **A Local `DateTime` near the range edge was clamped** to the wrong instant by `ToUniversalTime`. It is converted through `DateTimeOffset` now, which throws there instead.
 - **`Serialize(object, Type)` ignored the type.** It now checks it. Two weak test assertions were also strengthened.
+
+### Step 9: the `xfer` tool and the differential test
+
+Done 2026-10-20 (Opus). `src/ParksComputing.XferLang.Tool/Program.cs` ports xfer-js `cli/main.ts` line for line and uses only the library's public API. `test/ParksComputing.XferLang.DifferentialTests` runs both CLIs on the same inputs (section 12.6).
+
+- **Bytes, not the console.** Input is read from the standard input stream as bytes and output is written to the standard output and error streams as UTF-8 without a byte order mark, so the console's code page never touches either. A lone surrogate becomes U+FFFD on output, as it does when Node writes a string.
+- **`from-json` decodes as xfer-js does,** strictly and dropping a leading byte order mark, with the same message for invalid UTF-8. It does not use `XferJson.FromJson`'s byte overload, which reports invalid UTF-8 as a diagnostic.
+- **`--json` lines** are written as `JSON.stringify({ file, ...diagnostic })` writes them, with the fields in xfer-js's order and its escaping (lone surrogates as `\u` escapes), by hand rather than through `System.Text.Json`, whose escaping differs.
+- **The help text's line endings are fixed in code,** since a raw string literal takes the source file's.
+- **The generator is ported for rendering only** (`Inputs.cs`), with xfer-js's `mulberry32`, because `System.Random` does not promise the same sequence for a seed across .NET versions. The keys are shuffled with Fisher-Yates rather than xfer-js's random-comparator sort, whose result depends on the JavaScript engine's sort. The tagged model is not ported; the comparison does not need it. Section 12.4's generator port for the property tests is therefore still open.
+- **What is compared:** 400 generated documents (all valid, which a guard checks), each damaged three ways, 1,200 texts of token soup and 300 byte strings mixing invalid UTF-8, byte order marks, NUL and lone carriage returns. They go through `validate`, `validate --json`, `fmt --json`, `canon`, `to-json --json` and `to-json --pretty --stringify-big-ints`. For `from-json`, the JSON of the generated documents (compact and indented), each damaged once, 1,200 texts of JSON token soup and 300 byte strings are run with and without `--json`. Also compared: 31 argument vectors (usage errors, `--`, `-`, standard input, unreadable files) and `fmt --write` on a loose, a canonical and a broken file, including the files' bytes afterwards. Files go 300 to an invocation; when a batch differs, its inputs are rerun one at a time to find the one that did. The run takes about 30 seconds.
+- **Found by the first run:** only the sanctioned `XFER0701` position difference. Everything else, standard error included, was already identical.

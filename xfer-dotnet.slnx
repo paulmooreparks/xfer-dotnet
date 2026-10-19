@@ -4,6 +4,7 @@
     <Project Path="src/ParksComputing.XferLang/ParksComputing.XferLang.csproj" />
   </Folder>
   <Folder Name="/test/">
+    <Project Path="test/ParksComputing.XferLang.DifferentialTests/ParksComputing.XferLang.DifferentialTests.csproj" />
     <Project Path="test/ParksComputing.XferLang.Tests/ParksComputing.XferLang.Tests.csproj" />
   </Folder>
 </Solution>
