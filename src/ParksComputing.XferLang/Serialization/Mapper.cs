@@ -99,6 +99,15 @@ internal static class Mapper
                             && m.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
                         .MakeGenericMethod(element);
                     return create.Invoke(null, [list]);
+                case CollectionKind.Add:
+                    object collection = Activator.CreateInstance(Map.Type)!;
+                    MethodInfo add = typeof(ICollection<>).MakeGenericType(element).GetMethod(nameof(ICollection<int>.Add))!;
+                    foreach (object? item in list)
+                    {
+                        add.Invoke(collection, BindingFlags.DoNotWrapExceptions, null, [item], null);
+                    }
+
+                    return collection;
                 default:
                     return list;
             }
@@ -406,6 +415,8 @@ internal static class Mapper
                             }
 
                             break;
+                        case Shape.Unsupported:
+                            throw new InvalidOperationException(map.CannotConstruct);
                         default:
                             throw new InvalidOperationException($"no mapping for {map.Type}");
                     }
@@ -453,7 +464,7 @@ internal static class Mapper
         XferBool b => b.Value,
         XferNull => null,
         XferInteger i => i.TryGetInt64(out long l) ? (object)l : i.Value,
-        XferFractional f => f.ToDouble(out _),
+        XferFractional f => PlainFractional(f),
         // A temporal no .NET type can hold (a leap second, the year 0000) stays the parsed value:
         // it is exact, keeps its kind, and is written back as it was. Its text would change its
         // kind, and refusing it would refuse a valid document.
@@ -466,6 +477,19 @@ internal static class Mapper
         },
         _ => throw new InvalidOperationException($"no plain form for {value.Kind}"),
     };
+
+    /// <summary>
+    /// A fractional as the nearest double, unless the double would be infinite or zero for a
+    /// finite non-zero value (<c>1e400</c>, <c>1e-400</c>): that would be a different value, so
+    /// the parsed value is kept, as for a temporal no .NET type holds.
+    /// </summary>
+    private static object PlainFractional(XferFractional f)
+    {
+        double d = f.ToDouble(out _);
+        bool overflowed = double.IsInfinity(d) && f.Lexeme is not ("inf" or "-inf");
+        bool underflowed = d == 0 && Scalars.HasNonZeroDigit(f.Lexeme);
+        return overflowed || underflowed ? f : d;
+    }
 
     private static string Pointer(Stack<ReadFrame> stack)
     {
@@ -520,6 +544,9 @@ internal static class Mapper
         public List<XferValue> Values { get; } = [];
 
         public string? CurrentKey { get; set; }
+
+        /// <summary>The container being written.</summary>
+        public object? Source { get; set; }
     }
 
     public static XferValue Write(object? root, XferSerializerOptions options)
@@ -527,10 +554,23 @@ internal static class Mapper
         options.Freeze();
         TypeMap Resolve(Type t) => options.Cache.Get(t, options);
         var stack = new Stack<WriteFrame>();
+
+        // The containers being written, by reference: meeting one again is a cycle, reported at
+        // once rather than when the depth limit is reached.
+        var open = new HashSet<object>(ReferenceEqualityComparer.Instance);
         object? pending = root;
         MemberMap? pendingMember = null;
         bool havePending = true;
         XferValue? produced = null;
+
+        // A graph that shares references (each node's two members pointing at the next) maps to
+        // a tree exponentially larger than itself, so the mapper counts as it goes: every value
+        // against the element limit, and a lower bound on the bytes of the canonical output
+        // against the document limit, which the output could not pass anyway. Canonical form puts
+        // each element of a container on its own line, indented four spaces a level, so a value
+        // costs at least its newline and indentation, plus its key and a string's length.
+        long elements = 0;
+        long bytes = 0;
 
         while (true)
         {
@@ -540,13 +580,26 @@ internal static class Mapper
                 produced = null;
                 object? value = pending;
                 MemberMap? member = pendingMember;
+                bytes += 1 + (4L * stack.Count) + ((value as string)?.Length ?? 0);
+                if (++elements > options.Limits.Elements)
+                {
+                    throw new XferException(
+                        [XferDiagnostics.Create(XferDiagnosticCode.XFER0605, XferPosition.Origin, null, $"the value has more than {options.Limits.Elements} elements")]);
+                }
+
+                if (bytes > options.Limits.DocumentBytes)
+                {
+                    throw new XferException(
+                        [XferDiagnostics.Create(XferDiagnosticCode.XFER0601, XferPosition.Origin, null, $"the value would be written as more than {options.Limits.DocumentBytes} bytes")]);
+                }
+
                 if (value is null)
                 {
                     produced = new XferNull();
                 }
                 else if (member?.Converter is { } memberConverter)
                 {
-                    produced = memberConverter.WriteObject(value, new XferWriteContext(options));
+                    produced = Converted(memberConverter, value, options);
                 }
                 else
                 {
@@ -559,7 +612,7 @@ internal static class Mapper
                     switch (map.Shape)
                     {
                         case Shape.Converter:
-                            produced = map.Converter!.WriteObject(value, new XferWriteContext(options));
+                            produced = Converted(map.Converter!, value, options);
                             break;
                         case Shape.XferValue:
                             produced = (XferValue)value;
@@ -568,13 +621,21 @@ internal static class Mapper
                             produced = Scalars.Write(value, options, member?.Symbol == true);
                             break;
                         default:
+                            if (!value.GetType().IsValueType && !open.Add(value))
+                            {
+                                throw new XferException(
+                                    [XferDiagnostics.Create(XferDiagnosticCode.XFER0602, XferPosition.Origin, null, $"the value refers to itself through a {Scalars.TypeName(value.GetType())}, which no document can express")]);
+                            }
+
                             if (stack.Count >= options.Limits.Depth)
                             {
                                 throw new XferException(
-                                    [XferDiagnostics.Create(XferDiagnosticCode.XFER0602, XferPosition.Origin, null, $"the value is nested more than {options.Limits.Depth} levels deep, or refers to itself")]);
+                                    [XferDiagnostics.Create(XferDiagnosticCode.XFER0602, XferPosition.Origin, null, $"the value is nested more than {options.Limits.Depth} levels deep")]);
                             }
 
-                            stack.Push(Open(value, map, options));
+                            WriteFrame opened = Open(value, map, options);
+                            opened.Source = value;
+                            stack.Push(opened);
                             break;
                     }
                 }
@@ -605,6 +666,7 @@ internal static class Mapper
             {
                 (string? key, object? value, MemberMap? member) = top.Items.Current;
                 top.CurrentKey = key;
+                bytes += key?.Length ?? 0;
                 pending = value;
                 pendingMember = member;
                 havePending = true;
@@ -613,26 +675,39 @@ internal static class Mapper
             {
                 stack.Pop();
                 top.Items.Dispose();
+                open.Remove(top.Source!);
                 produced = top.IsObject ? new XferObject(top.Members) : new XferSequence(top.Values);
             }
         }
     }
 
+    /// <summary>A converter's value, which must be a value: a converter that returns null has failed.</summary>
+    private static XferValue Converted(XferConverter converter, object value, XferSerializerOptions options) =>
+        converter.WriteObject(value, new XferWriteContext(options))
+            ?? throw new InvalidOperationException($"{converter.GetType()} returned null for a {value.GetType()}; a converter writes null as an XferNull");
+
+    /// <summary>
+    /// The frame for a container, chosen by what the value is at run time, as <c>System.Text.Json</c>
+    /// does: a dictionary with string keys is an object, any other enumerable is a sequence, and
+    /// only what is neither is written member by member.
+    /// </summary>
     private static WriteFrame Open(object value, TypeMap map, XferSerializerOptions options)
     {
-        if (map.Shape is Shape.Object && !IsDictionary(value))
+        if (value is Array { Rank: > 1 })
         {
-            return new WriteFrame(true, Members(value, map, options).GetEnumerator());
+            throw new InvalidOperationException($"{value.GetType()} is a multidimensional array, which has no sequence form; use a jagged array");
+        }
+
+        if (TypeResolver.GenericDictionaryArguments(value.GetType()) is { } args)
+        {
+            return args.Key == typeof(string)
+                ? new WriteFrame(true, GenericDictionaryEntries(value, args.Value).GetEnumerator())
+                : throw new InvalidOperationException($"{value.GetType()} has {args.Key} keys; a dictionary is written as an object only when its keys are strings");
         }
 
         if (value is IDictionary dictionary)
         {
             return new WriteFrame(true, DictionaryEntries(dictionary).GetEnumerator());
-        }
-
-        if (GenericDictionaryEntries(value) is { } entries)
-        {
-            return new WriteFrame(true, entries.GetEnumerator());
         }
 
         if (value is IEnumerable sequence)
@@ -642,8 +717,6 @@ internal static class Mapper
 
         return new WriteFrame(true, Members(value, map, options).GetEnumerator());
     }
-
-    private static bool IsDictionary(object value) => value is IDictionary || GenericDictionaryValueType(value.GetType()) is not null;
 
     private static IEnumerable<(string?, object?, MemberMap?)> Members(object value, TypeMap map, XferSerializerOptions options)
     {
@@ -672,28 +745,8 @@ internal static class Mapper
         }
     }
 
-    private static Type? GenericDictionaryValueType(Type type)
+    private static IEnumerable<(string?, object?, MemberMap?)> GenericDictionaryEntries(object value, Type valueType)
     {
-        foreach (Type i in type.GetInterfaces().Prepend(type))
-        {
-            if (i.IsGenericType && (i.GetGenericTypeDefinition() == typeof(IDictionary<,>) || i.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)))
-            {
-                Type[] args = i.GetGenericArguments();
-                return args[0] == typeof(string) ? args[1] : null;
-            }
-        }
-
-        return null;
-    }
-
-    private static IEnumerable<(string?, object?, MemberMap?)>? GenericDictionaryEntries(object value)
-    {
-        Type? valueType = GenericDictionaryValueType(value.GetType());
-        if (valueType is null)
-        {
-            return null;
-        }
-
         Type pair = typeof(KeyValuePair<,>).MakeGenericType(typeof(string), valueType);
         PropertyInfo key = pair.GetProperty(nameof(KeyValuePair<string, object>.Key))!;
         PropertyInfo item = pair.GetProperty(nameof(KeyValuePair<string, object>.Value))!;

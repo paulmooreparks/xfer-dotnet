@@ -717,8 +717,7 @@ public class MapperTests
         options.Converters.Add(new CelsiusConverter());
         Assert.Equal(21.5, Read<Weather>("{Today \"21.5C\"}", options)!.Today!.Degrees);
         Assert.Equal("{Today \"21.5C\"}", CollapseSpaces(Write(new Weather { Today = new Celsius { Degrees = 21.5 } }, options).ReplaceLineEndings(" ")));
-        var e = Assert.Throws<XferException>(() => Read<Weather>("{\n Today 3}", options));
-        Assert.Contains("/Today", e.Message, StringComparison.Ordinal);
+        FailsAt<Weather>("{\n Today 3}", XferDiagnosticCode.XFER0801, 2, 8, "/Today", options);
         Assert.Throws<InvalidOperationException>(() => options.Converters.Add(new CelsiusConverter()));
         Assert.Throws<InvalidOperationException>(() => options.PropertyNameCaseInsensitive = true);
     }
@@ -726,7 +725,7 @@ public class MapperTests
     [Fact]
     public void RefusesAConverterThatDoesNotFitItsType()
     {
-        Assert.ThrowsAny<Exception>(() => Write(new Attributed()));
+        Assert.Throws<InvalidOperationException>(() => Write(new Attributed()));
     }
 
     // ---- Depth and cycles ----
@@ -765,6 +764,243 @@ public class MapperTests
         var list = new List<object>();
         list.Add(list);
         Assert.Equal(XferDiagnosticCode.XFER0602, Assert.Single(Assert.Throws<XferException>(() => Write(list)).Diagnostics).Code);
+    }
+
+    // ---- Found in review ----
+
+    public sealed class StringList : List<string>
+    {
+        public int Extra { get; set; }
+    }
+
+    public sealed class StringMap : Dictionary<string, int>
+    {
+    }
+
+    public sealed class Bag
+    {
+        public IEnumerable<int>? Lazy { get; set; }
+    }
+
+    [Fact]
+    public void WritesAnyEnumerableByItsItems()
+    {
+        Assert.Equal("[1 2]", Write(new System.Collections.ObjectModel.ReadOnlyCollection<int>([1, 2])));
+        Assert.Equal("{Lazy [2 4]}", Write(new Bag { Lazy = new[] { 1, 2 }.Select(i => i * 2) }));
+        Assert.Equal("[1 2]", Write(new Queue<int>([1, 2])));
+        Assert.Equal("[1 2]", Write(ImmutableList.Create(1, 2)));
+        Assert.Equal("[\"a\" \"b\"]", Write(new StringList { "a", "b" }));
+        Assert.Equal("{a 1}", Write(new System.Collections.Concurrent.ConcurrentDictionary<string, int>([new("a", 1)])));
+        Assert.Throws<InvalidOperationException>(() => Write(new int[1, 1]));
+        Assert.Throws<InvalidOperationException>(() => Write(new Dictionary<int, int> { [1] = 1 }));
+    }
+
+    [Fact]
+    public void ReadsAnyCollectionItCanFillAndRefusesTheRest()
+    {
+        Assert.Equal(["a", "b"], Read<StringList>("[a b]")!);
+        Assert.Equal([1, 2], Read<LinkedList<int>>("[1 2]")!);
+        Assert.Equal([1, 2], Read<SortedSet<int>>("[2 1]")!);
+        Assert.Equal(2, Read<StringMap>("{a 1 b 2}")!["b"]);
+        Assert.Equal(2, Read<System.Collections.Concurrent.ConcurrentDictionary<string, int>>("{a 1 b 2}")!["b"]);
+        Assert.Throws<InvalidOperationException>(() => Read<Queue<int>>("[1]"));
+        Assert.Throws<InvalidOperationException>(() => Read<ImmutableList<int>>("[1]"));
+        Assert.Throws<InvalidOperationException>(() => Read<System.Collections.ObjectModel.ReadOnlyCollection<int>>("[1]"));
+        Assert.Throws<InvalidOperationException>(() => Read<Dictionary<int, int>>("{a 1}"));
+        Assert.Throws<InvalidOperationException>(() => Read<int[,]>("[[1]]"));
+        Assert.Null(Read<Queue<int>>("null"));
+    }
+
+    public readonly struct Built
+    {
+        public Built(int a) => A = a;
+
+        public int A { get; }
+    }
+
+    [Fact]
+    public void BuildsAStructThroughItsOnlyConstructor()
+    {
+        Assert.Equal(5, Read<Built>("{A 5}").A);
+        FailsAt<Built>("{}", XferDiagnosticCode.XFER0803, 1, 1, string.Empty);
+    }
+
+    [Fact]
+    public void RefusesAHugeIntegerForBinaryFloatingPointFromItsLength()
+    {
+        var options = new XferSerializerOptions { Limits = new XferLimits { TokenBytes = 2_000_000, DocumentBytes = 4_000_000 } };
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        Assert.Equal(XferDiagnosticCode.XFER0303, Fails<double>(new string('9', 1_000_000), options).Code);
+        Assert.Equal(XferDiagnosticCode.XFER0303, Fails<double>("0x" + new string('f', 1_000_000), options).Code);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(3), $"took {watch.Elapsed}");
+        Assert.Equal(1e300, Read<double>("1" + new string('0', 300)));
+        Assert.Equal(255.0, Read<double>("0xff"));
+    }
+
+    /// <summary>A stream that, like an ASP.NET Core response, refuses synchronous writes.</summary>
+    private sealed class AsyncOnlyStream : Stream
+    {
+        private readonly MemoryStream data = new();
+
+        public override bool CanRead => false;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => true;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public byte[] ToArray() => data.ToArray();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new InvalidOperationException("synchronous write");
+
+        public override void Write(ReadOnlySpan<byte> buffer) => throw new InvalidOperationException("synchronous write");
+
+        public override void Flush() => throw new InvalidOperationException("synchronous flush");
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) => WriteAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, System.Threading.CancellationToken cancellationToken = default)
+        {
+            data.Write(buffer.Span);
+            return ValueTask.CompletedTask;
+        }
+
+        public override Task FlushAsync(System.Threading.CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                data.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+    }
+
+    [Fact]
+    public async Task SerializeAsyncNeverWritesSynchronously()
+    {
+        var items = Enumerable.Range(0, 50_000).ToList();
+        using var stream = new AsyncOnlyStream();
+        await XferSerializer.SerializeAsync(stream, items, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(XferSerializer.Serialize(items), Encoding.UTF8.GetString(stream.ToArray()));
+    }
+
+    public sealed class NullConverter : XferConverter<Celsius>
+    {
+        public override Celsius Read(XferValue value, XferReadContext context) => new();
+
+        public override XferValue Write(Celsius value, XferWriteContext context) => null!;
+    }
+
+    [Fact]
+    public void RefusesAConverterThatReturnsNull()
+    {
+        var options = new XferSerializerOptions();
+        options.Converters.Add(new NullConverter());
+        Assert.Throws<InvalidOperationException>(() => Write(new Weather { Today = new Celsius() }, options));
+        Assert.Throws<InvalidOperationException>(() => Write(new Celsius(), options));
+    }
+
+    [Fact]
+    public void KeepsAFractionalThatADoubleCannotHoldWhenReadAsObject()
+    {
+        var list = Assert.IsType<List<object?>>(Read<object>("[1e400 1e-400 inf 0.0 1.5]"));
+        Assert.Equal("1e400", Assert.IsType<XferFractional>(list[0]).Lexeme);
+        Assert.Equal("1e-400", Assert.IsType<XferFractional>(list[1]).Lexeme);
+        Assert.Equal(double.PositiveInfinity, list[2]);
+        Assert.Equal(0.0, list[3]);
+        Assert.Equal(1.5, list[4]);
+        Assert.Equal("[1e400 1e-400 inf 0.0 1.5]", Write(list));
+    }
+
+    [Flags]
+    public enum Wide
+    {
+        A = 1,
+        B = 2,
+        C = 4,
+        BC = B | C,
+        Neg = int.MinValue,
+    }
+
+    [Fact]
+    public void WritesFlagCombinationsOfAnyDefinedMembers()
+    {
+        Assert.Equal("[A Neg]", Write(Wide.A | Wide.Neg));
+        Assert.Equal("[A BC]", Write(Wide.A | Wide.BC));
+        Assert.Equal(Wide.A | Wide.Neg, Read<Wide>("[A Neg]"));
+        Assert.Equal(Wide.A | Wide.BC, Read<Wide>(Write(Wide.A | Wide.BC)));
+    }
+
+    public sealed class Diamond
+    {
+        public Diamond? L { get; set; }
+
+        public Diamond? R { get; set; }
+    }
+
+    [Fact]
+    public void RefusesASharedReferenceGraphByItsElementCount()
+    {
+        var node = new Diamond();
+        for (int i = 0; i < 40; i++)
+        {
+            node = new Diamond { L = node, R = node };
+        }
+
+        // Under the default limits the bound on output bytes stops it; under an element limit, that.
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var e = Assert.Throws<XferException>(() => Write(node));
+        Assert.Equal(XferDiagnosticCode.XFER0601, Assert.Single(e.Diagnostics).Code);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30), $"took {watch.Elapsed}");
+        e = Assert.Throws<XferException>(() => Write(node, new XferSerializerOptions { Limits = new XferLimits { Elements = 1000 } }));
+        Assert.Equal(XferDiagnosticCode.XFER0605, Assert.Single(e.Diagnostics).Code);
+        Assert.Equal(XferDiagnosticCode.XFER0601, Assert.Single(Assert.Throws<XferException>(() => Write(new string('x', 1000), new XferSerializerOptions { Limits = new XferLimits { DocumentBytes = 999 } })).Diagnostics).Code);
+    }
+
+    [Fact]
+    public void RefusesALocalTimeWhoseInstantIsOutOfRange()
+    {
+        if (TimeZoneInfo.Local.GetUtcOffset(DateTime.MinValue) > TimeSpan.Zero)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => Write(DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Local)));
+        }
+
+        if (TimeZoneInfo.Local.GetUtcOffset(DateTime.MaxValue) < TimeSpan.Zero)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => Write(DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Local)));
+        }
+    }
+
+    [Fact]
+    public void RefusesAValueThatIsNotOfTheStatedType()
+    {
+        Assert.Throws<ArgumentException>(() => XferSerializer.Serialize("x", typeof(int)));
+        Assert.Throws<ArgumentException>(() => XferSerializer.Serialize(null, typeof(int)));
+        Assert.Equal("null", XferSerializer.Serialize(null, typeof(int?)).TrimEnd('\n'));
+        Assert.Equal("\"x\"", XferSerializer.Serialize("x", typeof(object)).TrimEnd('\n'));
+    }
+
+    [Fact]
+    public void ReadsATimeTheHelpersRefuseAsOutOfRange()
+    {
+        FailsAt<TimeOnly>("23:59:60", XferDiagnosticCode.XFER0303, 1, 1, string.Empty);
+        FailsAt<DateTimeOffset>("0001-01-01T00:00:00+01:00", XferDiagnosticCode.XFER0303, 1, 1, string.Empty);
     }
 
     // ---- Entry points ----

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 
@@ -195,7 +196,19 @@ internal static class Scalars
             case XferFractional f:
                 lexeme = f.Lexeme.Replace("_", string.Empty, StringComparison.Ordinal);
                 break;
+            case XferInteger i when i.ValueFollowsFromSpelling && Json.JsonWriter.DecimalDigits(i.Lexeme) is { } digits:
+                // A parsed decimal integer is parsed from its spelling, with no BigInteger
+                // conversion, which for millions of digits would take seconds.
+                lexeme = digits;
+                break;
             case XferInteger i:
+                if (i.ValueFollowsFromSpelling && RadixBits(i.Lexeme) > 1100)
+                {
+                    // Past 2^1024 nothing is finite in double, float or Half, so a huge radix
+                    // spelling is refused from its length, before it is converted.
+                    throw Range(value, type, $"{Shorten(i.Lexeme)} is too large");
+                }
+
                 lexeme = i.Value.ToString(CultureInfo.InvariantCulture);
                 break;
             default:
@@ -221,11 +234,33 @@ internal static class Scalars
         return result;
     }
 
+    /// <summary>An upper bound on the bits of a radix integer spelling (<c>0x</c>, <c>0o</c>, <c>0b</c>), from its significant digits.</summary>
+    private static long RadixBits(string lexeme)
+    {
+        ReadOnlySpan<char> body = lexeme.AsSpan().TrimStart('-');
+        if (body.Length < 2 || body[0] != '0')
+        {
+            return 0;
+        }
+
+        int perDigit = body[1] switch { 'x' => 4, 'o' => 3, 'b' => 1, _ => 0 };
+        long significant = 0;
+        foreach (char c in body[2..])
+        {
+            if (c != '_' && (significant > 0 || c != '0'))
+            {
+                significant++;
+            }
+        }
+
+        return significant * perDigit;
+    }
+
 #pragma warning disable CA1859 // it returns double, float or Half, so object is the type
     private static object Box(Type type, double value) => type == typeof(double) ? (object)value : type == typeof(float) ? (float)value : (object)(Half)value;
 #pragma warning restore CA1859
 
-    private static bool HasNonZeroDigit(string lexeme)
+    internal static bool HasNonZeroDigit(string lexeme)
     {
         foreach (char c in lexeme)
         {
@@ -292,18 +327,34 @@ internal static class Scalars
                     bits |= ToBits(member);
                 }
 
-                return Enum.ToObject(type, bits);
+                return FromBits(type, bits);
             default:
                 throw Mismatch(value, type);
         }
     }
 
-    /// <summary>The bits of an enum value, whatever its underlying type and sign.</summary>
+    /// <summary>The bits of an enum value at the width of its underlying type, so a negative member has only its own bits set.</summary>
     private static ulong ToBits(object value) => Type.GetTypeCode(Enum.GetUnderlyingType(value.GetType())) switch
     {
-        TypeCode.SByte or TypeCode.Int16 or TypeCode.Int32 or TypeCode.Int64 => unchecked((ulong)Convert.ToInt64(value, CultureInfo.InvariantCulture)),
+        TypeCode.SByte => unchecked((byte)(sbyte)value),
+        TypeCode.Int16 => unchecked((ushort)(short)value),
+        TypeCode.Int32 => unchecked((uint)(int)value),
+        TypeCode.Int64 => unchecked((ulong)(long)value),
         _ => Convert.ToUInt64(value, CultureInfo.InvariantCulture),
     };
+
+    /// <summary>The enum value with these bits, built through a value of the exact underlying type, so no conversion has to wrap.</summary>
+    private static object FromBits(Type type, ulong bits) => Enum.ToObject(type, Type.GetTypeCode(Enum.GetUnderlyingType(type)) switch
+    {
+        TypeCode.SByte => unchecked((sbyte)bits),
+        TypeCode.Byte => unchecked((byte)bits),
+        TypeCode.Int16 => unchecked((short)bits),
+        TypeCode.UInt16 => unchecked((ushort)bits),
+        TypeCode.Int32 => unchecked((int)bits),
+        TypeCode.UInt32 => unchecked((uint)bits),
+        TypeCode.Int64 => unchecked((long)bits),
+        _ => (object)bits,
+    });
 
     private static object? EnumByName(string text, Type type, XferSerializerOptions options)
     {
@@ -348,7 +399,9 @@ internal static class Scalars
             case TimeOnly t:
                 return new XferTemporal(XferTemporalKind.Time, Time(t.Ticks));
             case DateTime dt:
-                DateTime asWritten = dt.Kind == DateTimeKind.Local ? dt.ToUniversalTime() : dt;
+                // ToUniversalTime clamps a result outside DateTime's range, which would write the
+                // wrong instant; the DateTimeOffset constructor throws there instead (documented).
+                DateTime asWritten = dt.Kind == DateTimeKind.Local ? new DateTimeOffset(dt).UtcDateTime : dt;
                 string local = asWritten.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + "T" + Time(asWritten.TimeOfDay.Ticks);
                 return dt.Kind == DateTimeKind.Unspecified
                     ? new XferTemporal(XferTemporalKind.LocalDateTime, local)
@@ -421,22 +474,24 @@ internal static class Scalars
         ulong bits = ToBits(value);
         if (type.IsDefined(typeof(FlagsAttribute), false) && bits != 0)
         {
-            var parts = new List<XferValue>();
+            // Cover the value with defined members, those with the most bits first, so a member
+            // that is itself a combination (ReadWrite = Read | Write) is used where it fits. The
+            // chosen members are then written in ascending order of their bits.
+            var chosen = new List<(ulong Bits, string Name)>();
             ulong covered = 0;
-            foreach (object member in Enum.GetValues(type))
+            foreach (object member in Enum.GetValues(type).Cast<object>().OrderByDescending(m => BitOperations.PopCount(ToBits(m))).ThenByDescending(ToBits))
             {
                 ulong m = ToBits(member);
-                if (m != 0 && (m & (m - 1)) == 0 && (bits & m) == m)
+                if (m != 0 && (bits & m) == m && (m & ~covered) != 0)
                 {
                     covered |= m;
-                    string key = Key(Enum.GetName(type, member)!);
-                    parts.Add(XferWriter.IsBareName(key) ? new XferSymbol(key) : new XferString(key));
+                    chosen.Add((m, Key(Enum.GetName(type, member)!)));
                 }
             }
 
             if (covered == bits)
             {
-                return new XferSequence(parts);
+                return new XferSequence(chosen.OrderBy(c => c.Bits).Select(c => XferWriter.IsBareName(c.Name) ? (XferValue)new XferSymbol(c.Name) : new XferString(c.Name)));
             }
         }
 

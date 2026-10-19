@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
@@ -30,13 +31,24 @@ public static class XferSerializer
     public static string Serialize<T>(T value, XferSerializerOptions? options = null) => Serialize(value, typeof(T), options);
 
     /// <summary>Writes a value as an XferLang document.</summary>
+    /// <exception cref="ArgumentException">The value is not of the type.</exception>
     [RequiresUnreferencedCode(TrimmingMessage)]
     [RequiresDynamicCode(AotMessage)]
     public static string Serialize(object? value, Type type, XferSerializerOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(type);
+        CheckType(value, type);
         XferSerializerOptions o = options ?? Defaults;
         return XferWriter.Canonical(Mapper.Write(value, o), new XferWriteOptions { Limits = o.Limits });
+    }
+
+    /// <summary>The value must be of the type it is said to be, as <c>System.Text.Json</c> requires.</summary>
+    private static void CheckType(object? value, Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        if (value is null ? type.IsValueType && Nullable.GetUnderlyingType(type) is null : !type.IsInstanceOfType(value))
+        {
+            throw new ArgumentException($"the value is {(value is null ? "null" : $"a {value.GetType()}")}, not a {type}", nameof(value));
+        }
     }
 
     /// <summary>The XferLang value a .NET value maps to.</summary>
@@ -56,15 +68,25 @@ public static class XferSerializer
     public static async Task SerializeAsync(Stream stream, object? value, Type type, XferSerializerOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(type);
+        CheckType(value, type);
         XferSerializerOptions o = options ?? Defaults;
         XferValue mapped = Mapper.Write(value, o);
-        var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), 65536, leaveOpen: true);
-        await using (writer.ConfigureAwait(false))
+
+        // The canonical writer is synchronous, so it writes into memory in chunks, and only the
+        // chunks go to the caller's stream, asynchronously: a stream that refuses synchronous
+        // writes (an ASP.NET Core response) is never written synchronously.
+        var chunks = new ChunkStream();
+        using (var writer = new StreamWriter(chunks, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), 65536, leaveOpen: true))
         {
             XferWriter.Canonical(mapped, writer, new XferWriteOptions { Limits = o.Limits });
-            await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
+
+        foreach (ReadOnlyMemory<byte> chunk in chunks.Chunks)
+        {
+            await stream.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
+        }
+
+        await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Reads an XferLang document as a value of a type.</summary>
@@ -124,17 +146,19 @@ public static class XferSerializer
         ArgumentNullException.ThrowIfNull(type);
         XferSerializerOptions o = options ?? Defaults;
 
-        // Read the bytes first, refusing an oversized stream as XferDocument.ParseAsync does, then
-        // parse with positions kept for the mapper.
-        using var buffer = new MemoryStream();
-        XferParseResult sized = await XferDocument.ParseAsync(new CopyingStream(stream, buffer), new XferParseOptions { Limits = o.Limits }, cancellationToken).ConfigureAwait(false);
-        if (!sized.Ok && sized.Diagnostics.Count == 1 && sized.Diagnostics[0].Code == XferDiagnosticCode.XFER0601)
+        // Read the bytes, refusing an oversized stream as XferDocument.ParseAsync does, then parse
+        // once, with positions kept for the mapper.
+        (MemoryStream? buffer, XferParseResult? refused) = await XferDocument.ReadBoundedAsync(stream, o.Limits, cancellationToken).ConfigureAwait(false);
+        if (refused is not null)
         {
-            throw new XferException(sized.Diagnostics);
+            throw new XferException(refused.Diagnostics);
         }
 
-        (XferParseResult result, SourceMap? map) = XferDocument.ParseForMapping(buffer.GetBuffer().AsSpan(0, (int)buffer.Length), o.Limits);
-        return Map(result, map, type, o);
+        using (buffer)
+        {
+            (XferParseResult result, SourceMap? map) = XferDocument.ParseForMapping(buffer!.GetBuffer().AsSpan(0, (int)buffer.Length), o.Limits);
+            return Map(result, map, type, o);
+        }
     }
 
     [RequiresUnreferencedCode(TrimmingMessage)]
@@ -149,54 +173,71 @@ public static class XferSerializer
         return Mapper.Read(result.Value, type, options, map);
     }
 
-    /// <summary>Passes reads through to a stream and keeps a copy of what was read.</summary>
-    private sealed class CopyingStream : Stream
+    /// <summary>A write-only stream that keeps what is written as a list of chunks, so no single array has to hold the whole output.</summary>
+    private sealed class ChunkStream : Stream
     {
-        private readonly Stream inner;
-        private readonly MemoryStream copy;
+        private const int ChunkSize = 65536;
+        private readonly List<byte[]> full = [];
+        private byte[] current = new byte[ChunkSize];
+        private int used;
 
-        public CopyingStream(Stream inner, MemoryStream copy)
+        /// <summary>What was written, in order.</summary>
+        public IEnumerable<ReadOnlyMemory<byte>> Chunks
         {
-            this.inner = inner;
-            this.copy = copy;
+            get
+            {
+                foreach (byte[] chunk in full)
+                {
+                    yield return chunk;
+                }
+
+                yield return current.AsMemory(0, used);
+            }
         }
 
-        public override bool CanRead => true;
+        public override bool CanRead => false;
 
-        public override bool CanSeek => inner.CanSeek;
+        public override bool CanSeek => false;
 
-        public override bool CanWrite => false;
+        public override bool CanWrite => true;
 
-        public override long Length => inner.Length;
+        public override long Length => throw new NotSupportedException();
 
         public override long Position
         {
-            get => inner.Position;
+            get => throw new NotSupportedException();
             set => throw new NotSupportedException();
         }
 
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            int read = inner.Read(buffer, offset, count);
-            copy.Write(buffer, offset, read);
-            return read;
-        }
+        public override void Write(byte[] buffer, int offset, int count) => Write(buffer.AsSpan(offset, count));
 
-        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        public override void Write(ReadOnlySpan<byte> buffer)
         {
-            int read = await inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            copy.Write(buffer.Span[..read]);
-            return read;
+            while (!buffer.IsEmpty)
+            {
+                if (used == ChunkSize)
+                {
+                    full.Add(current);
+                    current = new byte[ChunkSize];
+                    used = 0;
+                }
+
+                int n = Math.Min(buffer.Length, ChunkSize - used);
+                buffer[..n].CopyTo(current.AsSpan(used));
+                used += n;
+                buffer = buffer[n..];
+            }
         }
 
         public override void Flush()
         {
         }
 
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
         public override void SetLength(long value) => throw new NotSupportedException();
-
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
+
 }

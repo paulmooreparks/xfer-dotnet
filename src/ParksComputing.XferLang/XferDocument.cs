@@ -143,16 +143,27 @@ public static class XferDocument
     public static async ValueTask<XferParseResult> ParseAsync(Stream stream, XferParseOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        XferLimits limits = (options ?? Defaults).Limits;
+        (MemoryStream? buffer, XferParseResult? refused) = await ReadBoundedAsync(stream, (options ?? Defaults).Limits, cancellationToken).ConfigureAwait(false);
+        using (buffer)
+        {
+            return refused ?? Parse(buffer!.GetBuffer().AsSpan(0, (int)buffer.Length), options);
+        }
+    }
 
+    /// <summary>
+    /// Reads a stream to its end, or refuses it with <c>XFER0601</c> as soon as it is known to be
+    /// over the document limit, without reading the rest.
+    /// </summary>
+    internal static async ValueTask<(MemoryStream? Buffer, XferParseResult? Refused)> ReadBoundedAsync(Stream stream, XferLimits limits, CancellationToken cancellationToken)
+    {
         // The most a document can be: the caller's limit, and no more than an array can hold.
         int most = Math.Min(limits.DocumentBytes, Array.MaxLength);
         if (stream.CanSeek && stream.Length - stream.Position > most)
         {
-            return Finish(Normalizer.TooLarge(int.MaxValue), limits);
+            return (null, Finish(Normalizer.TooLarge(int.MaxValue), limits));
         }
 
-        using var buffer = stream.CanSeek ? new MemoryStream((int)Math.Max(0, stream.Length - stream.Position)) : new MemoryStream();
+        var buffer = stream.CanSeek ? new MemoryStream((int)Math.Max(0, stream.Length - stream.Position)) : new MemoryStream();
         byte[] chunk = ArrayPool<byte>.Shared.Rent(81920);
         try
         {
@@ -166,19 +177,24 @@ public static class XferDocument
 
                 if (buffer.Length + read > most)
                 {
-                    // Over the limit: refused as soon as it is known, without reading the rest.
-                    return Finish(Normalizer.TooLarge((int)Math.Min(buffer.Length + read, int.MaxValue)), limits);
+                    await buffer.DisposeAsync().ConfigureAwait(false);
+                    return (null, Finish(Normalizer.TooLarge((int)Math.Min(buffer.Length + read, int.MaxValue)), limits));
                 }
 
                 buffer.Write(chunk, 0, read);
             }
+        }
+        catch
+        {
+            await buffer.DisposeAsync().ConfigureAwait(false);
+            throw;
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(chunk);
         }
 
-        return Parse(buffer.GetBuffer().AsSpan(0, (int)buffer.Length), options);
+        return (buffer, null);
     }
 
     /// <summary>Parses a document and returns its value, or throws <see cref="XferException"/> with the diagnostics.</summary>

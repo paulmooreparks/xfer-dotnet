@@ -43,6 +43,13 @@ internal enum Shape
 
     /// <summary>A type a converter handles.</summary>
     Converter,
+
+    /// <summary>
+    /// A collection or dictionary the mapper cannot fill (no public parameterless constructor, or
+    /// keys that are not strings). It is written by what it enumerates; reading an object or a
+    /// sequence into it is an <see cref="InvalidOperationException"/>, never an empty value.
+    /// </summary>
+    Unsupported,
 }
 
 /// <summary>How a collection target is built from the list of its items.</summary>
@@ -52,6 +59,9 @@ internal enum CollectionKind
     List,
     HashSet,
     ImmutableArray,
+
+    /// <summary>Any other concrete <c>ICollection&lt;T&gt;</c> with a public parameterless constructor, filled through its <c>Add</c>.</summary>
+    Add,
 }
 
 /// <summary>A member of an object type.</summary>
@@ -207,6 +217,19 @@ internal static class TypeResolver
             return map;
         }
 
+        // Anything else that enumerates is a collection the mapper cannot fill. Mapping it member
+        // by member would read its items as an empty object, so it is refused instead.
+        if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
+        {
+            map.Shape = Shape.Unsupported;
+            map.CannotConstruct = GenericDictionaryArguments(type) is { Key: var key } && key != typeof(string)
+                ? $"{type} has {key} keys, and a dictionary is read from an object only when its keys are strings"
+                : type.IsArray
+                    ? $"{type} is a multidimensional array, which has no sequence form; use a jagged array"
+                    : $"{type} is a collection without a public parameterless constructor and an Add the mapper can call; use an array, a list, a set or a dictionary type of DESIGN.md section 10.3";
+            return map;
+        }
+
         map.Shape = Shape.Object;
         BuildObject(map, options);
         return map;
@@ -251,6 +274,29 @@ internal static class TypeResolver
             }
         }
 
+        // Any other concrete dictionary with string keys that can be made empty and filled
+        // (a subclass of Dictionary, ConcurrentDictionary, SortedList).
+        if (!type.IsAbstract && !type.IsInterface && typeof(IDictionary).IsAssignableFrom(type) && type.GetConstructor(Type.EmptyTypes) is not null
+            && GenericDictionaryArguments(type) is { Key: var key, Value: var value } && key == typeof(string))
+        {
+            return value;
+        }
+
+        return null;
+    }
+
+    /// <summary>The key and value types of the first generic dictionary interface a type implements, or null.</summary>
+    internal static (Type Key, Type Value)? GenericDictionaryArguments(Type type)
+    {
+        foreach (Type i in type.GetInterfaces().Prepend(type))
+        {
+            if (i.IsGenericType && (i.GetGenericTypeDefinition() == typeof(IDictionary<,>) || i.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)))
+            {
+                Type[] args = i.GetGenericArguments();
+                return (args[0], args[1]);
+            }
+        }
+
         return null;
     }
 
@@ -266,7 +312,7 @@ internal static class TypeResolver
 
         if (!type.IsGenericType)
         {
-            return null;
+            return AddableElementType(type, ref kind);
         }
 
         Type definition = type.GetGenericTypeDefinition();
@@ -288,6 +334,26 @@ internal static class TypeResolver
         {
             kind = CollectionKind.ImmutableArray;
             return element;
+        }
+
+        return AddableElementType(type, ref kind);
+    }
+
+    /// <summary>The element type of a concrete <c>ICollection&lt;T&gt;</c> with a public parameterless constructor (a subclass of List, a LinkedList, a SortedSet), or null.</summary>
+    private static Type? AddableElementType(Type type, ref CollectionKind kind)
+    {
+        if (type.IsAbstract || type.IsInterface || type.IsArray || type.GetConstructor(Type.EmptyTypes) is null || GenericDictionaryArguments(type) is not null)
+        {
+            return null;
+        }
+
+        foreach (Type i in type.GetInterfaces())
+        {
+            if (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>))
+            {
+                kind = CollectionKind.Add;
+                return i.GetGenericArguments()[0];
+            }
         }
 
         return null;
@@ -395,10 +461,15 @@ internal static class TypeResolver
         ConstructorInfo? chosen = constructors.FirstOrDefault(c => c.IsDefined(typeof(XferConstructorAttribute)));
         if (chosen is null)
         {
-            if (type.IsValueType || constructors.Any(c => c.GetParameters().Length == 0))
+            // A struct always has a default value, but when its author gave it exactly one
+            // constructor and no parameterless one, that constructor is how it is meant to be
+            // built: taking the default instead would leave get-only members at zero.
+            ConstructorInfo[] withParameters = [.. constructors.Where(c => c.GetParameters().Length > 0)];
+            bool parameterless = constructors.Length > withParameters.Length;
+            if (parameterless || (type.IsValueType && withParameters.Length != 1))
             {
                 map.Constructor = constructors.FirstOrDefault(c => c.GetParameters().Length == 0);
-                return; // a struct can always be made with its default value
+                return;
             }
 
             if (constructors.Length != 1)
