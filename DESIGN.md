@@ -688,4 +688,4 @@ Done 2026-10-20 (Opus), after Paul settled section 16, items 5 to 8, as recommen
 - **`ToJson` is bounded.** It refuses text longer than `Limits.DocumentBytes` with `XFER0601` and no value, and stops writing as soon as the text is over. `XferToJsonOptions` gained `Limits`, and the result type is now `XferJsonResult<string?>`.
 - **The tool writes through the standard handles** (`StandardStream.cs`) and remembers a failed write. A failure on standard output prints `xfer: cannot write standard output` once, at the end, and either failure makes the exit code 2. SIGPIPE's default action is cancelled under POSIX. Each file's output is written as it is made.
 - **New differential tests:** `to-json --pretty` on a document whose indented JSON is about 550 million characters, which both refuse with the same diagnostic, and output whose reader goes away after 10 characters, which both report with exit 2.
-- **The pin waits on xfer-js.** These tests need xfer-js 0.1.0-next.4, so `xfer-js.version` moves to it once it is published.
+- **The pin moved to xfer-js 0.1.0-next.4,** published 2026-10-20 with these changes, which the new tests need.
