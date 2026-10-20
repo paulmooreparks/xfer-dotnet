@@ -65,6 +65,19 @@ public sealed record XferToJsonOptions
     /// suite compares.
     /// </summary>
     public int Indent { get; init; }
+
+    private XferLimits limits = XferLimits.Default;
+
+    /// <summary>
+    /// The limits to enforce. Only <see cref="XferLimits.DocumentBytes"/> applies: JSON text longer
+    /// than it, counted in UTF-16 code units as the canonical writer counts, is refused with
+    /// <c>XFER0601</c> and no text (specification 8.1).
+    /// </summary>
+    public XferLimits Limits
+    {
+        get => limits;
+        init => limits = value ?? throw new ArgumentNullException(nameof(value));
+    }
 }
 
 /// <summary>Options for <see cref="XferJson.FromJson(string, XferFromJsonOptions?)"/>.</summary>
@@ -97,7 +110,7 @@ public static class XferJson
     /// so each carries the origin and says where it applies as a JSON Pointer in its message.
     /// </summary>
     /// <exception cref="ArgumentException">A value of a kind this specification does not define.</exception>
-    public static XferJsonResult<string> ToJson(XferValue value, XferToJsonOptions? options = null)
+    public static XferJsonResult<string?> ToJson(XferValue value, XferToJsonOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(value);
         return JsonWriter.Write(value, options ?? DefaultToJson);

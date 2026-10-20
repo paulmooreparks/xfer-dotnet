@@ -51,9 +51,7 @@ internal static class Program
         ["from-json"] = ["--json"],
     };
 
-    // Output is UTF-8 without a byte order mark, whatever the console's code page, and a lone
-    // surrogate becomes U+FFFD, as it does when Node writes a string to a stream.
-    private static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false);
+    private static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false); // for --write, as Node writes a string to a file
 
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
@@ -63,27 +61,32 @@ internal static class Program
 
     private static int Main(string[] args)
     {
-        using Stream stdout = Console.OpenStandardOutput();
-        using Stream stderr = Console.OpenStandardError();
+        using IDisposable? pipes = StandardStream.IgnoreBrokenPipes();
+        StandardStream stdout = StandardStream.Output();
+        StandardStream stderr = StandardStream.Error();
+        int code;
         try
         {
-            return Run(args, stdout, stderr);
+            code = Run(args, stdout, stderr);
         }
         catch (UsageException e)
         {
             Write(stderr, $"xfer: {e.Message}\n");
-            return 2;
+            code = 2;
         }
+
+        // A failed write to either stream is exit 2, whatever the documents said (section 11).
+        if (stdout.Failed)
+        {
+            Write(stderr, "xfer: cannot write standard output\n");
+        }
+
+        return stdout.Failed || stderr.Failed ? 2 : code;
     }
 
-    private static void Write(Stream stream, string text)
-    {
-        byte[] bytes = Utf8.GetBytes(text);
-        stream.Write(bytes);
-        stream.Flush();
-    }
+    private static void Write(StandardStream stream, string text) => stream.Write(text);
 
-    private static int Run(string[] args, Stream stdout, Stream stderr)
+    private static int Run(string[] args, StandardStream stdout, StandardStream stderr)
     {
         if (args.Length == 0)
         {
@@ -174,15 +177,22 @@ internal static class Program
         }
 
         bool allOk = true;
-        var output = new StringBuilder();
         foreach ((string file, byte[] bytes) in inputs)
         {
-            int before = output.Length;
+            // Each file's output is written as soon as it is made, never joined with the others,
+            // as xfer-js writes it.
+            var output = new StringBuilder();
             (bool ok, string? text) = Process(command, file == "-" ? "<stdin>" : file, bytes, options, output, stderr);
             allOk &= ok;
-            if (write && ok && text is not null)
+            if (!write)
             {
-                output.Length = before; // --write never prints
+                if (output.Length > 0)
+                {
+                    Write(stdout, output.ToString());
+                }
+            }
+            else if (ok && text is not null)
+            {
                 byte[] written = Utf8.GetBytes(text);
                 if (!written.AsSpan().SequenceEqual(bytes))
                 {
@@ -197,11 +207,6 @@ internal static class Program
                     }
                 }
             }
-        }
-
-        if (output.Length > 0)
-        {
-            Write(stdout, output.ToString());
         }
 
         return allOk ? 0 : 1;
@@ -236,7 +241,7 @@ internal static class Program
     }
 
     /// <summary>Processes one input and returns whether it was free of errors, with the canonical text for <c>fmt</c>.</summary>
-    private static (bool Ok, string? Text) Process(string command, string file, byte[] bytes, Options options, StringBuilder output, Stream stderr)
+    private static (bool Ok, string? Text) Process(string command, string file, byte[] bytes, Options options, StringBuilder output, StandardStream stderr)
     {
         switch (command)
         {
@@ -279,12 +284,17 @@ internal static class Program
                     return (false, null);
                 }
 
-                XferJsonResult<string> converted = XferJson.ToJson(result.Value, new XferToJsonOptions
+                XferJsonResult<string?> converted = XferJson.ToJson(result.Value, new XferToJsonOptions
                 {
                     StringifyBigIntegers = options.StringifyBigInts,
                     Indent = options.Pretty ? 2 : 0,
                 });
                 Report(stderr, file, converted.Diagnostics, options.Json);
+                if (converted.Value is null)
+                {
+                    return (false, null); // refused as longer than the document size limit (XFER0601)
+                }
+
                 output.Append(converted.Value).Append('\n');
                 return (!converted.Diagnostics.Any(d => d.Severity == XferSeverity.Error), null);
             }
@@ -327,7 +337,7 @@ internal static class Program
         }
     }
 
-    private static void Report(Stream stderr, string file, IReadOnlyList<XferDiagnostic> diagnostics, bool json)
+    private static void Report(StandardStream stderr, string file, IReadOnlyList<XferDiagnostic> diagnostics, bool json)
     {
         foreach (XferDiagnostic d in diagnostics)
         {
