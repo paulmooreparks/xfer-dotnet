@@ -48,3 +48,48 @@ jobs:
       - run: dotnet build --no-restore -c Release -warnaserror
       - run: dotnet test --no-build -c Release
       - run: dotnet pack --no-build -c Release -o artifacts
+      # The tool as a user gets it: installed from its package (the repository's nuget.config maps
+      # every package to nuget.org, so the install uses a configuration of its own).
+      - name: Install and run the packed tool
+        shell: bash
+        run: |
+          # On Windows, NuGet needs the drive-letter form of the path, which Git Bash gives with -W.
+          artifacts="$(pwd -W 2>/dev/null || pwd)/artifacts"
+          cat > "$RUNNER_TEMP/local.config" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration><packageSources><clear /><add key="local" value="$artifacts" /></packageSources></configuration>
+          EOF
+          dotnet tool install --tool-path "$RUNNER_TEMP/tool" --configfile "$RUNNER_TEMP/local.config" ParksComputing.XferLang.Tool --prerelease
+          test "$(printf '{a 1}' | "$RUNNER_TEMP/tool/xfer" fmt)" = "$(printf '{\n    a 1\n}')"
+
+  # Line coverage of the library must be at least 95% (DESIGN.md section 12.7). Instrumentation
+  # slows the code, so the time budgets of the linear-time tests are scaled for this run.
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - run: dotnet build -c Release -warnaserror
+      - run: >-
+          dotnet test --no-build -c Release --project test/ParksComputing.XferLang.Tests --
+          --coverlet --coverlet-include "[ParksComputing.XferLang]*" --coverlet-output-format cobertura
+          --coverlet-threshold 95 --coverlet-threshold-type line --coverlet-threshold-stat Total
+        env:
+          XFER_TIMING_SCALE: 20
+
+  # The core (everything but the reflection-based mapper) must be safe to trim and to compile
+  # ahead of time (DESIGN.md section 3): a small program that uses it is published with Native
+  # AOT, and any trim or AOT warning fails the build.
+  aot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - run: dotnet publish test/ParksComputing.XferLang.AotCheck -c Release -r linux-x64 -warnaserror -o aot
+      - run: ./aot/ParksComputing.XferLang.AotCheck

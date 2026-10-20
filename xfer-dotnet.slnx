@@ -1,9 +1,13 @@
 <Solution>
+  <Folder Name="/bench/">
+    <Project Path="bench/ParksComputing.XferLang.Benchmarks/ParksComputing.XferLang.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/ParksComputing.XferLang.Tool/ParksComputing.XferLang.Tool.csproj" />
     <Project Path="src/ParksComputing.XferLang/ParksComputing.XferLang.csproj" />
   </Folder>
   <Folder Name="/test/">
+    <Project Path="test/ParksComputing.XferLang.AotCheck/ParksComputing.XferLang.AotCheck.csproj" />
     <Project Path="test/ParksComputing.XferLang.DifferentialTests/ParksComputing.XferLang.DifferentialTests.csproj" />
     <Project Path="test/ParksComputing.XferLang.Tests/ParksComputing.XferLang.Tests.csproj" />
   </Folder>

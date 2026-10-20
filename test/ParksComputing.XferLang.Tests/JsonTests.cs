@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ParksComputing.XferLang.Tests.Harness;
 using Xunit;
 
 namespace ParksComputing.XferLang.Tests;
@@ -232,6 +233,7 @@ public class JsonTests
     }
 
     [Fact]
+    [Trait("Category", "Timing")]
     public void ADiagnosticPointerForADeepValueDoesNotCostMemoryQuadraticInTheDepth()
     {
         XferValue value = new XferSymbol("s");
@@ -244,10 +246,11 @@ public class JsonTests
         XferJsonResult<string?> result = XferJson.ToJson(value);
         timer.Stop();
         Assert.Single(result.Diagnostics);
-        Assert.True(timer.ElapsedMilliseconds < 5_000, $"{timer.ElapsedMilliseconds} ms");
+        Assert.True(timer.ElapsedMilliseconds < Timing.Scale * 5_000, $"{timer.ElapsedMilliseconds} ms");
     }
 
     [Fact]
+    [Trait("Category", "Timing")]
     public void AVeryLongDecimalIntegerRoundTripsWithoutBeingConvertedToABigInteger()
     {
         string digits = "1" + new string('7', 3_000_000);
@@ -257,7 +260,7 @@ public class JsonTests
         timer.Stop();
         Assert.Equal("[" + digits + "]", written.Value);
         Assert.Equal(XferDiagnosticCode.XFER0901, Assert.Single(written.Diagnostics).Code);
-        Assert.True(timer.ElapsedMilliseconds < 2_000, $"{timer.ElapsedMilliseconds} ms");
+        Assert.True(timer.ElapsedMilliseconds < Timing.Scale * 2_000, $"{timer.ElapsedMilliseconds} ms");
     }
 
     [Fact]
@@ -525,6 +528,7 @@ public class JsonTests
     }
 
     [Fact]
+    [Trait("Category", "Timing")]
     public void HelpersOnHugeSpellingsDoNotConvertThemInFull()
     {
         string digits = new('7', 3_000_000);
@@ -543,7 +547,7 @@ public class JsonTests
         Assert.True(fits.TryGetDecimal(out decimal one));
         Assert.Equal(1m, one);
         timer.Stop();
-        Assert.True(timer.ElapsedMilliseconds < 3_000, $"{timer.ElapsedMilliseconds} ms");
+        Assert.True(timer.ElapsedMilliseconds < Timing.Scale * 3_000, $"{timer.ElapsedMilliseconds} ms");
     }
 
     [Fact]

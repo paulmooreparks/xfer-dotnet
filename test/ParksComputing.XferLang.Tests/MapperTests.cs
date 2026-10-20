@@ -728,7 +728,64 @@ public class MapperTests
         Assert.Equal("{Today \"21.5C\"}", CollapseSpaces(Write(new Weather { Today = new Celsius { Degrees = 21.5 } }, options).ReplaceLineEndings(" ")));
         FailsAt<Weather>("{\n Today 3}", XferDiagnosticCode.XFER0801, 2, 8, "/Today", options);
         Assert.Throws<InvalidOperationException>(() => options.Converters.Add(new CelsiusConverter()));
+        Assert.Throws<InvalidOperationException>(() => options.Converters[0] = new CelsiusConverter());
+        Assert.Throws<InvalidOperationException>(() => options.Converters.RemoveAt(0));
+        Assert.Throws<InvalidOperationException>(() => options.Converters.Clear());
         Assert.Throws<InvalidOperationException>(() => options.PropertyNameCaseInsensitive = true);
+        Assert.Throws<InvalidOperationException>(() => options.PropertyNamingPolicy = null);
+        Assert.Throws<InvalidOperationException>(() => options.UnmappedMemberHandling = XferUnmappedMemberHandling.Disallow);
+        Assert.Throws<InvalidOperationException>(() => options.DefaultIgnoreCondition = XferIgnoreCondition.WhenWritingNull);
+        Assert.Throws<InvalidOperationException>(() => options.Limits = XferLimits.Default);
+    }
+
+    [Fact]
+    public void ConvertersCanBeChangedUntilTheOptionsAreUsed()
+    {
+        var options = new XferSerializerOptions();
+        options.Converters.Add(new CelsiusConverter());
+        options.Converters[0] = new NullConverter();
+        options.Converters.RemoveAt(0);
+        options.Converters.Add(new CelsiusConverter());
+        options.Converters.Clear();
+        Assert.Empty(options.Converters);
+        Assert.Throws<ArgumentNullException>(() => options.Converters.Add(null!));
+        options.Converters.Add(new CelsiusConverter());
+        Assert.Throws<ArgumentNullException>(() => options.Converters[0] = null!);
+        Assert.Throws<ArgumentNullException>(() => options.Limits = null!);
+    }
+
+    [Theory]
+    [InlineData("first name", "first-name", "first_name", "first name")]
+    [InlineData("First-Name", "first-name", "first_name", "first-Name")]
+    [InlineData("__first__name__", "first-name", "first_name", "__first__name__")]
+    [InlineData("XMLHttpRequest", "xml-http-request", "xml_http_request", "xmlHttpRequest")]
+    [InlineData("Version2Beta", "version2-beta", "version2_beta", "version2Beta")]
+    [InlineData("ID", "id", "id", "id")]
+    [InlineData("", "", "", "")]
+    [InlineData("already", "already", "already", "already")]
+    public void NamingPoliciesSplitWordsAtCapitalsAndSeparators(string name, string kebab, string snake, string camel)
+    {
+        // A space, hyphen or underscore ends a word, as the policies document; System.Text.Json
+        // treats existing separators differently, and documents no rule, so only plain identifiers
+        // are compared with it.
+        Assert.Equal(kebab, XferNamingPolicy.KebabCaseLower.ConvertName(name));
+        Assert.Equal(snake, XferNamingPolicy.SnakeCaseLower.ConvertName(name));
+        Assert.Equal(camel, XferNamingPolicy.CamelCase.ConvertName(name));
+    }
+
+    [Theory]
+    [InlineData("FirstName")]
+    [InlineData("XMLHttpRequest")]
+    [InlineData("Version2Beta")]
+    [InlineData("ID")]
+    [InlineData("already")]
+    [InlineData("HTTPCode")]
+    [InlineData("A")]
+    public void NamingPoliciesAgreeWithSystemTextJsonOnPlainIdentifiers(string name)
+    {
+        Assert.Equal(System.Text.Json.JsonNamingPolicy.KebabCaseLower.ConvertName(name), XferNamingPolicy.KebabCaseLower.ConvertName(name));
+        Assert.Equal(System.Text.Json.JsonNamingPolicy.SnakeCaseLower.ConvertName(name), XferNamingPolicy.SnakeCaseLower.ConvertName(name));
+        Assert.Equal(System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(name), XferNamingPolicy.CamelCase.ConvertName(name));
     }
 
     [Fact]
@@ -835,13 +892,14 @@ public class MapperTests
     }
 
     [Fact]
+    [Trait("Category", "Timing")]
     public void RefusesAHugeIntegerForBinaryFloatingPointFromItsLength()
     {
         var options = new XferSerializerOptions { Limits = new XferLimits { TokenBytes = 2_000_000, DocumentBytes = 4_000_000 } };
         var watch = System.Diagnostics.Stopwatch.StartNew();
         Assert.Equal(XferDiagnosticCode.XFER0303, Fails<double>(new string('9', 1_000_000), options).Code);
         Assert.Equal(XferDiagnosticCode.XFER0303, Fails<double>("0x" + new string('f', 1_000_000), options).Code);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(3), $"took {watch.Elapsed}");
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(3 * Timing.Scale), $"took {watch.Elapsed}");
         Assert.Equal(1e300, Read<double>("1" + new string('0', 300)));
         Assert.Equal(255.0, Read<double>("0xff"));
     }
@@ -964,6 +1022,7 @@ public class MapperTests
     }
 
     [Fact]
+    [Trait("Category", "Timing")]
     public void RefusesASharedReferenceGraphByItsElementCount()
     {
         var node = new Diamond();
@@ -976,7 +1035,7 @@ public class MapperTests
         var watch = System.Diagnostics.Stopwatch.StartNew();
         var e = Assert.Throws<XferException>(() => Write(node));
         Assert.Equal(XferDiagnosticCode.XFER0601, Assert.Single(e.Diagnostics).Code);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30), $"took {watch.Elapsed}");
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30 * Timing.Scale), $"took {watch.Elapsed}");
         e = Assert.Throws<XferException>(() => Write(node, new XferSerializerOptions { Limits = new XferLimits { Elements = 1000 } }));
         Assert.Equal(XferDiagnosticCode.XFER0605, Assert.Single(e.Diagnostics).Code);
         Assert.Equal(XferDiagnosticCode.XFER0601, Assert.Single(Assert.Throws<XferException>(() => Write(new string('x', 1000), new XferSerializerOptions { Limits = new XferLimits { DocumentBytes = 999 } })).Diagnostics).Code);

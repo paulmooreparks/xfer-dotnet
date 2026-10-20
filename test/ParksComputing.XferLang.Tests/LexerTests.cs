@@ -412,6 +412,7 @@ public class LexerTests
     }
 
     [Fact]
+    [Trait("Category", "Timing")]
     public void LongAndHostileInputsLexInLinearTime()
     {
         // Each shape is 2 MB; a quadratic path would take minutes.
@@ -429,7 +430,7 @@ public class LexerTests
             Lexed lexed = Lex(input);
             timer.Stop();
             Assert.Equal(input, Reconstruct(lexed));
-            Assert.True(timer.ElapsedMilliseconds < 5_000, $"{input[..10]}...: {timer.ElapsedMilliseconds} ms");
+            Assert.True(timer.ElapsedMilliseconds < Timing.Scale * 5_000, $"{input[..10]}...: {timer.ElapsedMilliseconds} ms");
         }
     }
 }

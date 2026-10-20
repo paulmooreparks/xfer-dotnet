@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Published with Native AOT in CI (DESIGN.md section 3): it uses the core, and any trim or AOT
+    warning fails the publish. It also runs, and checks what it got, so a build that trims away
+    something the core needs fails too.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <PublishAot>true</PublishAot>
+    <!-- Report each warning by itself, rather than one per assembly. -->
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/ParksComputing.XferLang/ParksComputing.XferLang.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -125,29 +125,28 @@ public sealed class XferSerializerOptions
 
         protected override void RemoveItem(int index)
         {
-            Check(null);
+            Check(null, adding: false);
             base.RemoveItem(index);
         }
 
         protected override void ClearItems()
         {
-            Check(null);
+            Check(null, adding: false);
             base.ClearItems();
         }
 
-        private void Check(XferConverter? item)
+        /// <summary>Refuses any change once the options are frozen, and a null converter.</summary>
+        private void Check(XferConverter? item, bool adding = true)
         {
             if (owner.frozen)
             {
                 throw new InvalidOperationException("these options have been used and can no longer be changed");
             }
 
-            if (item is null && Count >= 0)
+            if (adding)
             {
-                return;
+                ArgumentNullException.ThrowIfNull(item);
             }
-
-            ArgumentNullException.ThrowIfNull(item);
         }
     }
 }
