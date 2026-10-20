@@ -22,6 +22,8 @@
     <!-- The tool is run as a process, from its own output, so it is built but not referenced. -->
     <ProjectReference Include="../../src/ParksComputing.XferLang.Tool/ParksComputing.XferLang.Tool.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../../src/ParksComputing.XferLang/ParksComputing.XferLang.csproj" />
+    <!-- The generator of the property tests, shared rather than copied. -->
+    <Compile Include="../ParksComputing.XferLang.Tests/Harness/Generator.cs" Link="Generator.cs" />
   </ItemGroup>
 
   <ItemGroup>

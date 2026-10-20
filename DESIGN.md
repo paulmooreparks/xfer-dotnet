@@ -429,7 +429,7 @@ Settled 2026-10-20 (section 16, items 5, 6 and 8):
 
 ### 12.1 Frameworks
 
-xUnit v3 for tests, FsCheck for property tests, coverlet for coverage, BenchmarkDotNet for benchmarks. Versions are pinned in `Directory.Packages.props` at the time the scaffold is written.
+xUnit v3 for tests, coverlet for coverage, BenchmarkDotNet for benchmarks. Property tests draw their cases from a port of xfer-js's seeded `mulberry32`, as xfer-js does, so a failure gives the input and its seed and reproduces on any runtime. FsCheck was in the scaffold for them and was removed, unused, on 2026-10-20 (section 17). Versions are pinned in `Directory.Packages.props` at the time the scaffold is written.
 
 ### 12.2 The suite
 
@@ -702,3 +702,15 @@ Done 2026-10-20 (Opus), except publishing, which is step 11 and needs Paul.
 - **Release workflow (`release.yaml`):** on a tag `v<version>` it checks the tag against the built version, builds, tests and packs, logs in with `NuGet/login` (trusted publishing, user in the repository variable `NUGET_USER`, environment `nuget`), pushes both packages and creates the GitHub release, marked pre-release for a version with a suffix.
 - **Benchmarks** (`bench/ParksComputing.XferLang.Benchmarks`, BenchmarkDotNet `--job short` on the development machine, so the error bars are wide). The 22 KB navigation document parses in 0.27 ms, is written canonically in 0.17 ms, goes to JSON in 0.05 ms, and comes back in 0.10 ms. A generated 1 MB document parses in 66 ms. Through the mapper, compared with the legacy 0.x library on the same document, it is read in 0.49 ms against 10.4 ms (21 times faster, a sixth of the memory) and written in 1.4 ms against 67 ms (49 times faster). Parsing allocates about 25 times the size of the document, mostly the token and trivia lists sized at one entry per four bytes (step 4), which puts documents over about 14 KB on the large object heap. That was chosen to avoid regrowth and is left as it is.
 - **Still open from section 12.4:** the property tests ported from xfer-js (the embedding property over the five alphabets, the whitespace invariant, the generator's coverage guard, never-throws over random input, and the exactness property of `ToDouble`) were never written. Step 5 met its generator requirement through the xfer-js fixture instead, and step 9 ported only the generator's rendering. They are the next piece of work.
+
+### The property tests of section 12.4
+
+Done 2026-10-20 (Opus). `Harness/Generator.cs` ports xfer-js `test/generator.ts` in full: the document model, its rendering under random or tight spacing, and the tagged value it must parse to. The differential tests now use it too, through a linked file, instead of their rendering-only copy. It also generates `1e400`, `1e-400`, a leap second and the year 0000, which xfer-js's does not, because no .NET type holds them exactly. `PropertyTests.cs` ports what was missing (64 tests):
+
+- **From `parser.test.ts`:** 1,500 generated documents parse to exactly their model, with member order and a lossless tree; the same documents with every optional space removed parse the same; and the guard on the generator holds xfer-js's shares for all 15 features.
+- **From `canonical.test.ts`:** the canonical form of every generated document reads back to its model and is idempotent; it is the same whatever the spacing of the source; and every valid suite document with its whitespace collapsed to single spaces has the suite's canonical form (the whitespace invariant).
+- **From `strings.test.ts`:** any string over the five alphabets reads back as itself (4,000 each); so does any string under a smaller run limit when it fits; strings built from runs of up to 70 quotes or hashes read back at the edges and the limit, and are refused with `XFER0604` alone when no delimiter fits within 64; and such strings read back as keys through the canonical writer.
+- **From `json.test.ts`:** `FromJson` gives a value exactly when it reports no error, over 5,000 random texts; random JSON values round-trip through XferLang; and any text in strings and keys, lone surrogates and carriage returns included, round-trips or is refused with `XFER0907` alone.
+- **Already present:** never-throws over random text and bytes, the differential well-formedness check against `Utf8JsonReader`, and the exactness property of `ToDouble`.
+
+None of them found a defect in the library. One test assumption was wrong: `JsonNode.ToJsonString` replaces a lone surrogate with U+FFFD rather than escaping it, so the test writes its JSON as `JSON.stringify` does. FsCheck, referenced since the scaffold and never used, is removed.
