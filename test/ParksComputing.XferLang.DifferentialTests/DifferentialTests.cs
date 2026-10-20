@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ParksComputing.XferLang.Json;
+using ParksComputing.XferLang.Tests.Harness;
 using Xunit;
 
 namespace ParksComputing.XferLang.DifferentialTests;
