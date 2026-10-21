@@ -722,3 +722,9 @@ Done 2026-10-21. Paul set up nuget.org: a trusted publishing policy (owner `paul
 The tag `v0.1.0-next.0` ran `release.yaml`, which pushed `ParksComputing.XferLang` and `ParksComputing.XferLang.Tool` 0.1.0-next.0 with a short-lived key from trusted publishing, and created the GitHub release (pre-release, with both packages). nuget.org listed both four minutes later, and `dotnet tool install ParksComputing.XferLang.Tool --version 0.1.0-next.0` from nuget.org installed a tool that formats and converts as it should. For a few minutes after that, installing with `--prerelease` and no version failed, because the registration index lags the download index.
 
 Section 14's item 12, the migration of the parkscomputing.com engine (section 15), is next, and needs Paul's go-ahead.
+
+### Step 12: parkscomputing.com on XferLang 1.0
+
+Done 2026-10-21, by the agent that maintains the parkscomputing repository, from the brief this project wrote for it: `Architecture/xferlang-1.0-migration.md` in that repository, which lists every place the engine used the legacy library, maps the old API to the new one, and sets out a beta test against copies of production's folders before the cutover. That repository records the move itself (its commit `5c7fd91`). Paul tested on beta.parkscomputing.com and then moved production.
+
+Checked from here afterwards: the engine references `ParksComputing.XferLang` 0.1.0-next.0 in place of `ParksComputing.Xfer.Lang` 0.15.25-prerelease; the live `wwwroot/sitenav.xfer` and `etc/admin-menu.xfer` both begin `<! xfer 1 !>` and pass `xfer validate` from the published tool; parkscomputing.com and beta.parkscomputing.com both answer. Every step of section 14 is now done.
