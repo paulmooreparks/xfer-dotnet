@@ -341,6 +341,30 @@ public sealed partial class DifferentialTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// The legacy repository's sample files (the roadmap's milestone M2 asks for them): the 22
+    /// 0.x documents of paulmooreparks/Xfer as they are, which both CLIs must reject in the same
+    /// words, and the 13 of them that tools/fixtures/convert-legacy.mjs converts, whatever they
+    /// then are. legacy-samples/README.md says where each came from.
+    /// </summary>
+    [Fact]
+    public async Task TheLegacyRepositorysSampleFiles()
+    {
+        RequireJs();
+        string samples = Path.Combine(AppContext.BaseDirectory, "legacy-samples");
+        string[] names = [.. Directory.GetFiles(samples, "*.xfer").Select(Path.GetFileName).Order(StringComparer.Ordinal)!];
+        Assert.Equal(35, names.Length);
+        foreach (string name in names)
+        {
+            File.Copy(Path.Combine(samples, name), Path.Combine(work, name));
+        }
+
+        foreach (string[] command in new[] { new[] { "validate", "--json" }, ["fmt", "--json"], ["canon"], ["to-json", "--json"], ["to-json", "--pretty"] })
+        {
+            await AssertSame(work, [.. command, .. names]);
+        }
+    }
+
     [Fact]
     public async Task AFileOpenForWritingElsewhere()
     {

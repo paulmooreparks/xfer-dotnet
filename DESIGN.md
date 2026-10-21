@@ -728,3 +728,10 @@ Section 14's item 12, the migration of the parkscomputing.com engine (section 15
 Done 2026-10-21, by the agent that maintains the parkscomputing repository, from the brief this project wrote for it: `Architecture/xferlang-1.0-migration.md` in that repository, which lists every place the engine used the legacy library, maps the old API to the new one, and sets out a beta test against copies of production's folders before the cutover. That repository records the move itself (its commit `5c7fd91`). Paul tested on beta.parkscomputing.com and then moved production.
 
 Checked from here afterwards: the engine references `ParksComputing.XferLang` 0.1.0-next.0 in place of `ParksComputing.Xfer.Lang` 0.15.25-prerelease; the live `wwwroot/sitenav.xfer` and `etc/admin-menu.xfer` both begin `<! xfer 1 !>` and pass `xfer validate` from the published tool; parkscomputing.com and beta.parkscomputing.com both answer. Every step of section 14 is now done.
+
+### Closing milestone M2
+
+Done 2026-10-21. Two parts of the roadmap's M2 exit were still open after step 12: CI green at a tagged commit of `xferlang`, and the two implementations run against each other on the legacy repository's sample files.
+
+- **The suite is pinned at `v1.0.0-draft.1`** (xferlang `4788b52`), the tag that xfer-js pins too. It was the untagged `dffcd6b` before; the one specification change between them is the JSON output bound of 8.1, which both implementations already have.
+- **Legacy samples:** the 22 0.x documents of the legacy repository, and the 13 that `convert-legacy.mjs` converts, are in `test/ParksComputing.XferLang.DifferentialTests/legacy-samples/` with a README that says where each came from. `TheLegacyRepositorysSampleFiles` runs both CLIs on all 35 with `validate --json`, `fmt --json`, `canon`, `to-json --json` and `to-json --pretty`, and they agree byte for byte, standard error included. None of the files is a valid 1.0 document, the converted ones included (they keep 0.x processing instructions and tuples), so this tests the error paths, where the two implementations are most likely to drift.

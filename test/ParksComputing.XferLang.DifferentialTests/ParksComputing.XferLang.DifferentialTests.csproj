@@ -24,6 +24,7 @@
     <ProjectReference Include="../../src/ParksComputing.XferLang/ParksComputing.XferLang.csproj" />
     <!-- The generator of the property tests, shared rather than copied. -->
     <Compile Include="../ParksComputing.XferLang.Tests/Harness/Generator.cs" Link="Generator.cs" />
+    <Content Include="legacy-samples/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
