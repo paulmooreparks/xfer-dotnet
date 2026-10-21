@@ -1,0 +1,85 @@
+(
+    <! script (
+        let first "Alice"
+        let greeting 'Hi <_first_>'
+        let answer 42
+    )!>
+    { message _greeting number _answer }
+
+    <! script(
+        let greetee "World"
+        let score *99.5
+    )!>
+    {
+        summary 'Hello, <_greetee_>. Your score is <_score_>.'
+    }
+
+    <'It's <_greetee_>'>
+
+    <! script (
+        let host "localhost"
+        let port 8080
+    ) !>
+    {
+        serviceUrl 'https://<_host_>:<_port_>/'
+    }
+
+    <! let showDebug ~false !>
+    <! if _showDebug !>
+    { debug { level "verbose" } }
+
+    <! if <|DEBUG|>!>
+    { debug { level "verbose" } }
+
+    <//
+    </ These are examples of future object-binding approaches />
+    (
+        year (getElementById (_document "date"))
+        count (root (_document))
+
+        MultiParam (_sampleClass year (getElementById (_document "date")) count (root (_document)))
+
+        <! script (
+            let rootNode (root (document "root"))
+        )!>
+    )
+    //>
+
+    !charDef {
+        fooz \zeta
+        theend \omega
+        pin \pushpin
+        answer \$42
+    }!
+    [~true ~false ~true ~false]
+    (~false ~true ~false ~true)
+    {one\1 two#$2 three&%11}
+    (x y "z")
+
+    <! id "object" !>
+    alphabet {
+        <! id "testpi" !> a '<\alpha\>'
+        b '<\beta\>'
+        g '<\gamma\>'
+        d '<\delta\>'
+        e '<\epsilon\>'
+        z '<\zeta\>'
+    }
+
+    <! if eq["Linux" "<|PLATFORM|>"] !>
+    profile{name"Bob"role"admin"verified~true}
+
+    <! if gt[#<|NUMBER_OF_PROCESSORS|> #8] !>
+    mixedData ( "Sample" @2023-12-25@ *99.5 )
+
+    age $18
+    <!id "kvp"!>foo <!id "value"!>"bar"
+    [1 2 3]
+    <\answer\>
+    'I <\heart\><\vsemoji\> XferLang!'
+    'Put a <\pin\> in it!'
+    foo"bar"
+
+    <! id "array" !> [<! id "one"!> 1 2 3]
+
+)

@@ -1,0 +1,240 @@
+<! document { version "0.15" } !>
+{
+    slug "home"
+    title "Home"
+    description "Parks Computing Site Home"
+    nav [
+        {
+            slug "applications"
+            title "Applications"
+            description "Here are some client-based applications I've written."
+            nav [
+                {
+                    slug "pbrain"
+                    title "Pbrain"
+                    </ url derived />
+                    date @2015-06-02T01:14:28@
+                    updated @2015-06-02T01:14:28@
+                    excerpt <"The pbrain programming language is an extension I made to the Brainf**k programming language that adds the ability to define and call procedures.">
+                }
+                {
+                    slug "windragsens"
+                    title "WinDragsens"
+                    </ url derived />
+                    date @2015-05-29T17:36:28@
+                    updated @2015-05-29T17:36:28@
+                    excerpt <"In response to a comment regarding the console-based version of the drag sensitivity utility, I've created a new version of the utility that includes a graphical interface and a means of testing the drag settings in the interface.">
+                }
+                {
+                    slug "dragsens"
+                    title "Dragsens"
+                    </ url derived />
+                    date @2015-05-29T17:30:58@
+                    updated @2015-05-29T17:30:58@
+                    excerpt <"Inspired by an article by Raymond Chen about how to correctly change the Windows mouse drag sensitivity, I wrote a simple utility called dragsens. It's a small command-line utility that will allow you to change the number of pixels the mouse has to travel before a drag operation is initiated.">
+                }
+            ]
+        }
+        {
+            slug "webapps"
+            title "Web Apps"
+            description "Here are some web-based applications I've written."
+            nav [
+                {
+                    slug "sudoku"
+                    title "Sudoku"
+                    </ url derived />
+                    date @2023-09-22T08:00:00@
+                    updated @2023-09-22T08:00:00@
+                    description "A Sudoku Game and Editor in JavaScript"
+                    excerpt <"I didn't like most of the Sudoku apps I found, so I decided to write one.">
+                }
+                {
+                    slug "conways-game-of-life"
+                    title "Conway's Game of Life"
+                    </ url derived />
+                    date @2015-11-20T15:05:09@
+                    updated @2015-11-20T15:05:09@
+                    description "The famous game implemented in JavaScript"
+                    excerpt <"I realized one day that I had never implemented Conway's Game of Life, which is something of a rite of passage for young computer-science students. As I opted for a more non-traditional path to the software profession, I somehow missed that fun, even though I've made a point of implementing other computer-sciency things like it.">
+                }
+                {
+                    slug "barcode-generator"
+                    title "Barcode Generator"
+                    </ url derived />
+                    date @2010-05-06T03:25:00@
+                    updated @2010-05-06T03:25:00@
+                    excerpt <"A simple barcode generator which is badly in need of an update.">
+                }
+            ]
+        }
+        {
+            slug "links"
+            title "Links"
+            description "Links to my other sites"
+            nav [
+                {
+                    slug "github"
+                    title "GitHub"
+                    url "https://github.com/paulmooreparks/"
+                    excerpt "My GitHub repositories"
+                }
+                {
+                    slug "linkedin"
+                    title "LinkedIn"
+                    url "https://www.linkedin.com/in/paulmooreparks/"
+                    excerpt "My LinkedIn profile"
+                }
+            ]
+        }
+        {
+            slug "resume"
+            title "Résumé"
+        }
+    ]
+    posts [
+        {
+            slug "sudoku"
+            </ url derived />
+            date @2023-09-22T08:00:00@
+            updated @2023-09-22T08:00:00@
+            description "A Sudoku Game and Editor in HTML and JavaScript"
+            excerpt <"I didn't like most of the Sudoku apps I found, so I decided to write one as a fun little evening and weekend project. It lets you edit and share games.">
+        }
+        {
+            slug "resume"
+            </ url derived />
+            date @2023-08-20T16:42:00@
+            updated @2023-08-20T16:42:00@
+            description "Updated Résumé"
+            excerpt <"Fitting almost 35 years of professional experience into a four-page Microsoft Word document is a daunting task!">
+        }
+        {
+            slug "excel-employee-capacity-spreadsheet"
+            </ url derived />
+            date @2023-07-26T10:40:00@
+            updated @2023-07-26T10:40:00@
+            excerpt <"I once managed a team of business analysts and a separate team of software engineers. In order to be able to track their utilisation and capacity at see both at a glance, I developed an Excel spreadsheet that would display colourful graphs that could quickly reveal when employees were over- or under-utilised.">
+        }
+        {
+            slug "personas-in-the-wild"
+            </ url derived />
+            date @2023-06-23T02:51:00@
+            updated @2023-06-23T02:51:00@
+            excerpt <"If you've been around software product management long enough, you've encountered the concept of personas. Here's a story about seeing one in the wild.">
+        }
+        {
+            slug "becoming-a-developer-overnight-in-only-five-years"
+            </ url derived />
+            date @2023-01-09T00:00:00@
+            updated @2023-01-09T00:00:00@
+            excerpt <"This post was inspired by an article on Cal Newport's site that caused me to reflect on my path to my current career.">
+        }
+        {
+            slug "new-website-design"
+            </ url derived />
+            date @2022-12-01T03:57:03@
+            updated @2022-12-01T03:57:03@
+            excerpt <"I'm in the process of porting my site to ASP.NET Razor Pages using .NET 7.0, hosted on Azure.">
+        }
+        {
+            slug "fizzbuzz"
+            </ url derived />
+            date @2022-12-01T03:57:03@
+            updated @2022-12-01T03:57:03@
+            excerpt <"This is just one of those things you have to write, apparently. Here is mine, in C++.">
+        }
+        {
+            slug "set-associative-cache-in-c-part-2-interface-design"
+            </ url derived />
+            date @2021-08-04T12:06:15@
+            updated @2021-08-04T12:06:15@
+            excerpt <"This is part 2 of a multi-part series on implementing a set-associative cache in C#.">
+        }
+        {
+            slug "set-associative-cache-in-c-part-1-analysis-initial-design"
+            </ url derived />
+            date @2021-08-01T09:16:05@
+            updated @2021-08-01T09:16:05@
+            excerpt <"This is part 1 of a multi-part series in which I turn a coding test from an interview into a more appropriate treatment for the true complexity of the exercise.">
+        }
+        {
+            slug "barbecue-and-project-management"
+            </ url derived />
+            date @2016-06-10T21:10:16@
+            updated @2016-06-10T21:10:16@
+            excerpt <"Going through the process of preparing some smoked barbecue for Memorial Day got me thinking about a few parallels with project management, particularly in the field of software development.">
+        }
+        {
+            slug "scheduling-every-minute-revisited"
+            </ url derived />
+            date @2016-02-08T16:08:20@
+            updated @2016-02-08T16:08:20@
+            excerpt <"Late last year, I published an article entitled \"How I Plan Every Minute of My Day to Stay Productive,\" where I described my personal daily workflow of planning the tasks that I need to accomplish and then adjusting that plan as necessary throughout the day. I have a new job now, so I want to post an update on how well the approach is working in a new environment with new responsibilities, and how I've made a few tweaks to the process.">
+        }
+        {
+            slug "conways-game-of-life"
+            </ url derived />
+            date @2015-11-20T15:05:09@
+            updated @2015-11-20T15:05:09@
+            description "The famous game implemented in JavaScript"
+            excerpt <"I realized one day that I had never implemented Conway's Game of Life, which is something of a rite of passage for young computer-science students. As I opted for a more non-traditional path to the software profession, I somehow missed that fun, even though I've made a point of implementing other computer-sciency things like it.">
+        }
+        {
+            slug "how-i-plan-my-day"
+            </ url derived />
+            date @2015-09-09T06:48:58@
+            updated @2015-09-09T06:48:58@
+            excerpt <"Over the years, I have progressed from being a software developer who focuses on code all day, to a designer who designs and codes, to a technical lead who communicates a design and technical strategy to a team of developers, to a technical and project lead who leads developers in the implementation of a project while communicating with customers and other stakeholders. At each level the demands on my time have increased, while the expectations of improved productivity and reliable delivery have also increased.">
+        }
+        {
+            slug "pbrain"
+            </ url derived />
+            date @2015-06-02T01:14:28@
+            updated @2015-06-02T01:14:28@
+            excerpt <"The pbrain programming language is an extension I made to the Brainf**k programming language that adds the ability to define and call procedures.">
+        }
+        {
+            slug "windragsens"
+            </ url derived />
+            date @2015-05-29T17:36:28@
+            updated @2015-05-29T17:36:28@
+            excerpt <"In response to a comment regarding the console-based version of the drag sensitivity utility, I've created a new version of the utility that includes a graphical interface and a means of testing the drag settings in the interface.">
+        }
+        {
+            slug "master-foo-and-the-technical-recruiter"
+            </ url derived />
+            date @2015-05-28T19:19:12@
+            updated @2015-05-28T19:19:12@
+            excerpt <"I found Eric Raymond's Unix Koans of Master Foo several years ago and simply loved them. Like the Zen koans they are taken from, they are a succinct way to communicate concepts of software development, specifically as they relate to the Unix development subculture.">
+        }
+        {
+            slug "dragsens"
+            </ url derived />
+            date @2015-05-29T17:30:58@
+            updated @2015-05-29T17:30:58@
+            excerpt <"Inspired by an article by Raymond Chen about how to correctly change the Windows mouse drag sensitivity, I wrote a simple utility called dragsens. It's a small command-line utility that will allow you to change the number of pixels the mouse has to travel before a drag operation is initiated.">
+        }
+        {
+            slug "george-orwell-and-effective-coding"
+            </ url derived />
+            date @2011-10-26T00:00:00@
+            updated @2011-10-26T00:00:00@
+            excerpt <"Earlier today I read an essay on the decline of the English language by George Orwell. The essay is excellent, and I'm already trying to apply its lessons to my writing, but there was one passage that struck me as being particularly useful for software development.">
+        }
+        {
+            slug "compute-magazine-archives"
+            </ url derived />
+            date @2011-05-15T00:00:00@
+            updated @2011-05-15T00:00:00@
+            excerpt <"I just found an archive of COMPUTE! magazine, which is the magazine that taught me how to program in the 1980's. Just recently I was lamenting not keeping every single issue I ever had (which was most of them), but now I can flip back through them any time. Looking through the site really brought back some memories of when I first started messing with computers, around 1983 or so.">
+        }
+        {
+            slug "barcode-generator"
+            </ url derived />
+            date @2010-05-06T03:25:00@
+            updated @2010-05-06T03:25:00@
+            excerpt <"A simple barcode generator which is badly in need of an update.">
+        }
+    ]
+}
