@@ -6,7 +6,7 @@ The package targets .NET 10 and has no dependencies. It contains a parser that r
 
 The specification and its conformance suite live in the [xferlang](https://github.com/paulmooreparks/xferlang) repository, which this repository includes as the `suite` submodule. This package passes every case in the suite, and its command line tool gives the same output, byte for byte, as the one in [xfer-js](https://github.com/paulmooreparks/xfer-js), the JavaScript implementation.
 
-The first release will be `0.1.0-next.0`, a pre-release. Nothing is published yet.
+Both packages are on NuGet as pre-releases; the first is `0.1.0-next.0`.
 
 ## A document
 

@@ -714,3 +714,11 @@ Done 2026-10-20 (Opus). `Harness/Generator.cs` ports xfer-js `test/generator.ts`
 - **Already present:** never-throws over random text and bytes, the differential well-formedness check against `Utf8JsonReader`, and the exactness property of `ToDouble`.
 
 None of them found a defect in the library. One test assumption was wrong: `JsonNode.ToJsonString` replaces a lone surrogate with U+FFFD rather than escaping it, so the test writes its JSON as `JSON.stringify` does. FsCheck, referenced since the scaffold and never used, is removed.
+
+### Step 11: 0.1.0-next.0 published
+
+Done 2026-10-21. Paul set up nuget.org: a trusted publishing policy (owner `paulmooreparks`, repository `xfer-dotnet`, workflow `release.yaml`, environment `nuget`, push scope for new packages and versions, limited to the two package ids by name) and the repository variable `NUGET_USER`. NuGet has no reservation of a single package id; an id belongs to whoever pushes it first. A reservation of the `ParksComputing.` prefix is possible by asking account@nuget.org and is not needed.
+
+The tag `v0.1.0-next.0` ran `release.yaml`, which pushed `ParksComputing.XferLang` and `ParksComputing.XferLang.Tool` 0.1.0-next.0 with a short-lived key from trusted publishing, and created the GitHub release (pre-release, with both packages). nuget.org listed both four minutes later, and `dotnet tool install ParksComputing.XferLang.Tool --version 0.1.0-next.0` from nuget.org installed a tool that formats and converts as it should. For a few minutes after that, installing with `--prerelease` and no version failed, because the registration index lags the download index.
+
+Section 14's item 12, the migration of the parkscomputing.com engine (section 15), is next, and needs Paul's go-ahead.
